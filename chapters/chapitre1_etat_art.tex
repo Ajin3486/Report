@@ -1,23 +1,34 @@
 % Chapter 1: Background (~2.5 pages)
 
 \section{Motion Planning and ROS2/MoveIt}
-% To complete (~0.8 page):
-% - UR10 manipulator: 6 DoF, forward/inverse kinematics
-% - MoveIt: Collision-free trajectory planning
-% - Limitation: Cannot adapt to calibration errors or perception noise
-% Diagram: UR10 with 6 joints labeled
+
+Robotic manipulators like the Universal Robots UR10 are characterized by their kinematic structure. The UR10 is a 6 degrees-of-freedom (DoF) serial manipulator, where each revolute joint contributes one rotational degree of freedom. The relationship between joint angles and end-effector position is described by forward kinematics, while the inverse problem—computing joint configurations to reach a desired pose—is solved through inverse kinematics algorithms.
+
+Motion planning addresses the challenge of computing collision-free trajectories from an initial to a goal configuration. MoveIt, integrated with the Robot Operating System 2 (ROS2), is the de facto standard for motion planning in robotics research and industry. It provides sampling-based planners (e.g., RRT, RRT*) and optimization-based methods (e.g., CHOMP, STOMP) to generate trajectories that respect joint limits, avoid obstacles, and minimize path length or execution time.
+
+However, classical motion planners operate under the assumption that the robot model and environment representation are accurate. When calibration errors exist—such as inaccurate camera extrinsics or AprilTag position uncertainties—MoveIt generates trajectories to the \textit{perceived} target location rather than the true one. The planner has no mechanism to detect or compensate for these systematic errors during execution. This limitation motivates the need for adaptive control strategies that can correct for perception-induced positioning errors in real-time.
 
 \section{Reinforcement Learning for Robotics}
-% To complete (~1 page):
-% - RL basics: Agent observes state, takes action, receives reward
-% - Sample efficiency problem: Real robot training is slow/dangerous
-% - Solution: GPU-accelerated simulation (Isaac Lab: 4096 parallel envs)
-% - PPO algorithm: Stable, sample-efficient, widely used in robotics
-% Diagram: RL cycle (observation → policy → action → reward)
+
+Reinforcement Learning (RL) is a machine learning paradigm where an agent learns to make decisions by interacting with an environment. The agent observes the current state, selects an action according to its policy, receives a reward signal indicating the quality of that action, and transitions to a new state. The learning objective is to maximize the cumulative expected reward over time.
+
+Unlike supervised learning, which requires labeled input-output pairs, RL learns from trial and error through exploration of the state-action space. This makes RL particularly suitable for robotics, where optimal control policies are difficult to manually specify but can be discovered through interaction. However, this advantage comes with a critical challenge: sample efficiency.
+
+Training RL policies on physical robots is prohibitively slow and potentially dangerous. Each policy update requires hundreds or thousands of trajectory rollouts, which would take weeks on a real robot and risk mechanical damage during exploration. GPU-accelerated simulation environments like NVIDIA Isaac Lab address this bottleneck by enabling massive parallelization: instead of running one robot at a time, thousands of simulated environments execute simultaneously on GPU cores, reducing training time from weeks to hours.
+
+The Proximal Policy Optimization (PPO) algorithm has emerged as a popular choice for continuous control in robotics due to its stability and sample efficiency. PPO belongs to the family of policy gradient methods, which directly optimize the policy parameters to maximize expected returns. Its key innovation is a clipped objective function that prevents excessively large policy updates, ensuring stable learning even in high-dimensional continuous action spaces. These properties have made PPO successful in tasks ranging from legged locomotion to dexterous manipulation.
 
 \section{Residual Learning}
-% To complete (~0.7 page):
-% - Concept: Nominal controller (MoveIt) + learned corrections (PPO)
-% - Equation: a_final = a_MoveIt + a_RL
-% - Advantages: Safety (MoveIt ensures feasibility), faster training, interpretability
-% - Related work: Cite 1-2 papers on residual RL in robotics
+
+Pure end-to-end learning, where an RL policy directly controls all robot joints, faces two significant challenges: safety and training efficiency. Without constraints, the policy might produce unsafe actions during exploration, and learning from scratch requires extensive environment interaction even for tasks where prior knowledge exists.
+
+Residual learning offers an elegant solution by decomposing the control policy into two components: a nominal controller and a learned residual. Mathematically, the final action is expressed as:
+\begin{equation}
+a_{\text{final}} = a_{\text{nominal}} + a_{\text{residual}}
+\end{equation}
+
+In our case, $a_{\text{nominal}}$ is the trajectory generated by MoveIt, which ensures kinematic feasibility and collision avoidance. The learned policy $a_{\text{residual}}$ produces small corrective actions that compensate for errors the nominal controller cannot address—specifically, perception noise and calibration inaccuracies.
+
+This approach provides several advantages. First, \textit{safety}: the nominal controller guarantees that the robot remains within its operational envelope, while the residual is bounded to prevent large deviations. Second, \textit{accelerated learning}: by focusing only on corrections rather than full control, the policy search space is drastically reduced, enabling faster convergence. Third, \textit{interpretability}: when the system fails, it is easier to diagnose whether the issue stems from the planner or the learned component.
+
+Residual reinforcement learning has been successfully applied to various robotic tasks. Johannink et al. (2019) demonstrated residual RL for precise insertion tasks, where a PD controller provided nominal tracking and RL learned contact-rich corrections. Silver et al. (2018) used residual policies to improve helicopter aerobatics beyond classical controllers. Our work extends this paradigm to vision-based manipulation with AprilTag localization, where perception uncertainties are the primary source of error requiring learned compensation.
