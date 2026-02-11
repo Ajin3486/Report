@@ -1,0 +1,36 @@
+% Chapter 2: System Architecture (~4 pages)
+
+\section{Physical Setup and ROS2 Pipeline}
+% To complete (~1 page):
+% - Hardware: UR10 robot + Camera + AprilTags in defined workspace
+% - ROS2 architecture: Camera node → TF (AprilTag to base) → MoveIt
+% - Trajectory generation: Random straight lines in workspace
+% - URDF: Same model in ROS2 and Isaac Lab (centimeter-precise alignment)
+% Photo: Real setup (or CAD model)
+% Diagram: ROS2 node architecture
+
+\section{Isaac Lab Digital Twin}
+% To complete (~1.5 pages):
+% - Why Isaac Lab: GPU parallelization (4096 envs), faster than Isaac Sim
+% - Synthetic vision: Math-based perception instead of image rendering
+%   * Position_observed = Position_true + Gaussian_noise
+%   * Equivalent to AprilTag detection but computationally efficient
+% - Domain randomization during training:
+%   * Sensor noise: σ_detection = [0.5mm, 2mm]
+%   * Calibration error: Camera offset = [0, 3cm]
+%   * Dynamics: Friction/damping ±15%, mass ±5%
+%   * Latency: Action delay = [0, 50ms]
+% Table: Randomization parameters with ranges
+% Diagram: Isaac Lab architecture (4096 parallel environments)
+
+\section{PPO Implementation}
+% To complete (~1.5 pages):
+% - Network: MLP (64-64 neurons, ReLU activation)
+% - Observation (dim=18): Joint pos/vel (12), error vector to target (3), target position (3)
+% - Action (dim=6): Position delta (corrections to MoveIt trajectory)
+% - Reward function:
+%   R = -α||error_pos|| - β||acceleration|| - γ·out_of_workspace
+%   (α=10, β=0.1, γ=100)
+% - Hyperparameters: lr=3e-4, batch=2048, epochs=10, horizon=512
+% Table: Hyperparameters
+% Equation: Reward function

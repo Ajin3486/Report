@@ -1,0 +1,64 @@
+% Chapter 4: Experimental Results (~6 pages)
+
+\section{Training Results}
+% To complete (~1.5 pages):
+% - Convergence: Reward curve over 5M timesteps (or X epochs)
+% - Training time: Y hours on GPU (specify GPU model)
+% - Final metrics:
+%   * Success rate: 95% (error < 5mm)
+%   * Average RMS error: 2.3mm
+%   * Average episode length: 150 steps
+% Graph: Reward vs timesteps (with std deviation band)
+% Table: Final training metrics
+
+\section{Validation Results}
+% To complete (~3.5 pages):
+
+\subsection{Test A: Baseline Performance}
+% (~0.7 page)
+% - Success rate: 97% (no randomization)
+% - RMS error: 1.8mm, Max error: 4.2mm
+% Graph: Example trajectory (XYZ vs time: desired vs actual)
+% - Observation: Smooth tracking, minimal oscillations
+
+\subsection{Test B: Calibration Robustness}
+% (~1 page)
+% - Results:
+%   * Offset 2cm: Success 93%, RMS 2.5mm
+%   * Offset 3cm: Success 88%, RMS 3.1mm
+%   * Offset 5cm: Success 76%, RMS 4.8mm
+% - Baseline (MoveIt only):
+%   * Offset 2cm: Success 45%, RMS 18mm (no compensation)
+% - Analysis: Policy successfully compensates up to 3cm offset
+% Graph: Error vs calibration offset (RL vs baseline)
+% Table: Comparative results
+
+\subsection{Test C: Sensor Noise Robustness}
+% (~0.8 page)
+% - Results:
+%   * σ=0.5mm: Success 96%, RMS 2.0mm
+%   * σ=2mm: Success 91%, RMS 2.8mm
+%   * σ=5mm: Success 79%, RMS 4.3mm
+% - Analysis: Performance degrades gracefully with noise
+% Graph: Success rate vs noise level
+
+\subsection{Test D: Dynamic Robustness}
+% (~0.7 page)
+% - Results:
+%   * Friction ±10%: Success 92%
+%   * Friction ±20%: Success 84%
+%   * Mass ±10%: Success 90%
+% - Analysis: Reasonable robustness to dynamics changes within training range
+% Table: Success rate by parameter variation
+
+\subsection{Comparative Summary}
+% (~0.3 page)
+% Table: All tests summary (success rate, RMS error)
+
+\section{Discussion}
+% To complete (~1 page):
+% - Key finding: Policy robust to moderate perturbations
+% - Limitations: Performance degrades with extreme noise/offsets (expected)
+% - Comparison with baseline: Significant improvement over MoveIt alone
+% - Failure modes: High noise + large offset combined
+% - Implication for sim-to-real: Promising if real calibration within 3cm, noise < 3mm

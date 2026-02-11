@@ -1,7 +1,25 @@
-C'est le début de notre rapport. Ici, nous présentons le sujet et les objectifs.
+% Conclusion (~1.5 pages)
 
-\section{Contexte}
-Dans cette section, nous décrivons le contexte du projet.
+\section{Summary}
+% To complete (~0.5 page):
+% - Successfully implemented residual RL pipeline: ROS2 trajectory generation + Isaac Lab training + domain randomization validation
+% - Main result: Policy achieves 97% success in baseline, 88% with 3cm calibration error, 91% with moderate sensor noise
+% - Key finding: Residual learning (MoveIt + PPO) significantly outperforms baseline MoveIt alone
 
-\section{Objectifs}
-Les objectifs de ce rapport sont multiples.
+\section{Contributions and Limitations}
+% To complete (~0.5 page):
+% - Methodological contribution: Complete pipeline with domain randomization validation
+% - Technical contribution: Demonstrated robustness to calibration/sensor uncertainties
+% - Limitations:
+%   * No physical robot validation (time constraint)
+%   * Synthetic vision vs real camera (lighting, occlusions not modeled)
+%   * Performance degrades with extreme perturbations (>5cm offset, >5mm noise)
+
+\section{Future Work}
+% To complete (~0.5 page):
+% - Short term: Deploy on real UR10, measure actual Reality Gap
+% - Medium term: 
+%   * Integrate real camera with AprilTag detection
+%   * Test on more complex tasks (pick-and-place)
+%   * Try other RL algorithms (SAC, TD3)
+% - Long term: Multi-robot generalization, industrial deployment

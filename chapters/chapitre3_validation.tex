@@ -1,0 +1,36 @@
+% Chapter 3: Validation Strategy (~3 pages)
+
+\section{Domain Randomization Approach}
+% To complete (~1 page):
+% - Context: Time constraint prevents real robot validation
+% - Strategy: Test policy under diverse randomized conditions
+% - Justification: If robust to varied sim conditions, likely to transfer to real
+% - Domain randomization parameters (more extreme than training):
+%   * Sensor noise: σ = [0.5mm, 5mm] (vs training: [0.5mm, 2mm])
+%   * Calibration error: offset = [0, 5cm] (vs training: [0, 3cm])
+%   * Dynamics: friction/mass ±20% (vs training: ±15%)
+% - Literature support: Cite 1-2 papers on domain randomization for sim-to-real
+
+\section{Test Protocols}
+% To complete (~2 pages):
+% - Test set: 100 random trajectories (unseen during training)
+% - Metrics: Success rate (error < 5mm), RMS error, max error
+
+\subsection{Test A: Baseline Performance}
+% - Conditions: No randomization (ideal scenario)
+% - Expected: High success rate, low error
+
+\subsection{Test B: Calibration Robustness}
+% - Inject systematic camera offset: 2cm, 3cm, 5cm
+% - Measure: Can policy compensate to reach true target?
+% - Baseline comparison: MoveIt alone (no compensation)
+
+\subsection{Test C: Sensor Noise Robustness}
+% - Vary AprilTag detection noise: σ = 0.5mm, 2mm, 5mm
+% - Measure: Tracking accuracy degradation vs noise level
+
+\subsection{Test D: Dynamic Robustness}
+% - Vary friction coefficients: ±10%, ±20%
+% - Vary link masses: ±10%
+% - Measure: Success rate vs parameter deviation
+% Table: Test conditions summary
