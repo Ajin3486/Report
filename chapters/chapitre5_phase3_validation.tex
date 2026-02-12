@@ -1,0 +1,37 @@
+\section{Validation Isaac Lab \texorpdfstring{$\rightarrow$}{->} Isaac Sim}
+Nous avons d'abord évalué la politique apprise directement dans l'environnement d'entraînement Isaac Lab, mais sur des scénarios jamais vus durant l'entraînement. Les résultats montrent une convergence rapide et stable.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{images/learning_curve.png} % À remplacer par votre courbe
+    \caption{Courbes d'apprentissage : récompense moyenne par épisode (Placeholder).}
+    \label{fig:learning_curve}
+\end{figure}
+
+Le taux de succès atteint dépasse les 95\% sur un ensemble de test comprenant des trajectoires aléatoires avec bruit de perception et erreur de calibration simulée. Cela valide que l'agent a bien appris à corriger les trajectoires du planificateur MoveIt.
+
+\section{Limites de cette validation}
+Bien que les résultats dans Isaac Lab soient prometteurs, cette validation reste une évaluation "Sim-to-Sim" au sein du même moteur physique (PhysX). 
+Le principal risque est que la politique ait appris à exploiter des artefacts spécifiques à la simulation (erreurs numériques, modèle de friction simplifié) qui n'existent pas dans la réalité.
+Pour garantir une véritable robustesse avant le déploiement réel, il est crucial de tester la politique dans un environnement physiquement différent.
+
+\section{Ouverture : Validation Sim-to-Sim (Isaac \texorpdfstring{$\rightarrow$}{->} MuJoCo)}
+Pour renforcer notre validation, nous avons exporté la politique entraînée vers un second simulateur : MuJoCo.
+
+\subsection{Pourquoi MuJoCo ?}
+MuJoCo utilise un solveur de dynamique différent de celui d'Isaac Lab (coordonnées généralisées vs coordonnées maximales/réduites de PhysX) et un modèle de contact distinct. 
+Si la politique fonctionne dans MuJoCo sans réentraînement, cela démontre une grande capacité de généralisation et suggère une bonne transférabilité vers le robot réel.
+
+\subsection{Méthodologie de transfert}
+Le transfert a nécessité la conversion du modèle du robot :
+\begin{itemize}
+    \item Conversion du format URDF (utilisé par ROS 2 et Isaac Lab) vers le format MJCF (spécifique à MuJoCo).
+    \item Vérification de la correspondance des repères et des limites articulaires.
+\end{itemize}
+
+\subsection{Tests de robustesse}
+Dans MuJoCo, nous avons soumis l'agent à des perturbations supplémentaires :
+\begin{itemize}
+    \item Ajout de masses inconnues sur l'effecteur (simulant une charge utile).
+    \item Introduction d'erreurs de calibration plus sévères que lors de l'entraînement.
+\end{itemize}

@@ -1,37 +1,10 @@
-% Chapter 2: System Architecture (~4 pages)
-
 \section{Physical Setup and ROS2 Pipeline}
 
 \begin{figure}[h]
 \centering
-\begin{tikzpicture}
-  \node[anchor=south west,inner sep=0] (image) at (0,0) {
-    \includegraphics[width=0.6\textwidth]{images/Robot_reel.jpg}
-  };
-  \begin{scope}[x={(image.south east)},y={(image.north west)}]
-    % Annotations avec flèches (coordonnées relatives 0-1)
-    % Ajuste les positions (x,y) selon ton image
-    
-    % Robot UR10
-    \draw[-Stealth, thick, red, line width=1.5pt] (0.15,0.75) -- (0.35,0.55);
-    \node[fill=white, rounded corners, font=\small\bfseries] at (0.08,0.78) {UR10 Robot};
-    
-    % AprilTag
-    \draw[-Stealth, thick, blue, line width=1.5pt] (0.85,0.8) -- (0.65,0.65);
-    \node[fill=white, rounded corners, font=\small\bfseries] at (0.92,0.82) {AprilTag};
-    
-    % Workspace
-    \draw[-Stealth, thick, green!60!black, line width=1.5pt] (0.5,0.15) -- (0.5,0.35);
-    \node[fill=white, rounded corners, font=\small\bfseries] at (0.5,0.08) {Workspace};
-    
-    % Caméra (si visible, ajuste la position)
-    \draw[-Stealth, thick, orange, line width=1.5pt] (0.85,0.4) -- (0.7,0.45);
-    \node[fill=white, rounded corners, font=\small\bfseries] at (0.92,0.38) {Camera};
-    
-  \end{scope}
-\end{tikzpicture}
-\caption{Real-world setup with labeled components: UR10 manipulator, camera, AprilTag markers, and defined workspace}
-\label{fig:rl_cycle}
+\includegraphics[width=0.5\textwidth]{images/Robot_reel.jpg}
+\caption{Real-world setup: UR10 manipulator, camera, AprilTag markers, and workspace}
+\label{fig:real_setup}
 \end{figure}
 
 The physical system consists of a Universal Robots UR10 manipulator (6 degrees of freedom), a webcam for perception, and AprilTag fiducial markers placed in a defined workspace (X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height). This setup provides a controlled environment for training data generation and real-world validation.
@@ -44,30 +17,5 @@ The physical system consists of a Universal Robots UR10 manipulator (6 degrees o
 
 \textbf{Model Consistency.} Both ROS2 and Isaac Lab use identical robot models, ensuring centimeter-precise kinematic alignment. This consistency is critical: any mismatch in link lengths or joint axes would cause policies trained in simulation to fail on the real robot.
 
-
-
 \section{Isaac Lab Digital Twin}
 % To complete (~1.5 pages):
-% - Why Isaac Lab: GPU parallelization (4096 envs), faster than Isaac Sim
-% - Synthetic vision: Math-based perception instead of image rendering
-%   * Position_observed = Position_true + Gaussian_noise
-%   * Equivalent to AprilTag detection but computationally efficient
-% - Domain randomization during training:
-%   * Sensor noise: σ_detection = [0.5mm, 2mm]
-%   * Calibration error: Camera offset = [0, 3cm]
-%   * Dynamics: Friction/damping ±15%, mass ±5%
-%   * Latency: Action delay = [0, 50ms]
-% Table: Randomization parameters with ranges
-% Diagram: Isaac Lab architecture (4096 parallel environments)
-
-\section{PPO Implementation}
-% To complete (~1.5 pages):
-% - Network: MLP (64-64 neurons, ReLU activation)
-% - Observation (dim=18): Joint pos/vel (12), error vector to target (3), target position (3)
-% - Action (dim=6): Position delta (corrections to MoveIt trajectory)
-% - Reward function:
-%   R = -α||error_pos|| - β||acceleration|| - γ·out_of_workspace
-%   (α=10, β=0.1, γ=100)
-% - Hyperparameters: lr=3e-4, batch=2048, epochs=10, horizon=512
-% Table: Hyperparameters
-% Equation: Reward function
