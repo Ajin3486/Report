@@ -11,6 +11,8 @@
 \usepackage{xcolor}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
 
 \geometry{
     a4paper,
@@ -28,6 +30,11 @@
     numberstyle=\tiny,
     captionpos=b
 }
+
+% Remove "Chapter" word and keep number on same line as title
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]
+  {\normalfont\huge\bfseries}{\thechapter}{1em}{}
 
 \title{\textbf{Reinforcement Learning for Sim2Real and path following in Isaaclab with Ur10}}
 \author{
@@ -49,7 +56,8 @@ This thesis presents the development of a robotic control pipeline combining cla
 
 \tableofcontents
 
-\chapter{Introduction}
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
 \input{chapters/introduction}
 
 \chapter{State of the Art and Key Concepts}

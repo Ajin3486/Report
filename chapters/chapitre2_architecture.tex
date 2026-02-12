@@ -1,13 +1,50 @@
 % Chapter 2: System Architecture (~4 pages)
 
 \section{Physical Setup and ROS2 Pipeline}
-% To complete (~1 page):
-% - Hardware: UR10 robot + Camera + AprilTags in defined workspace
-% - ROS2 architecture: Camera node → TF (AprilTag to base) → MoveIt
-% - Trajectory generation: Random straight lines in workspace
-% - URDF: Same model in ROS2 and Isaac Lab (centimeter-precise alignment)
-% Photo: Real setup (or CAD model)
-% Diagram: ROS2 node architecture
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[anchor=south west,inner sep=0] (image) at (0,0) {
+    \includegraphics[width=0.6\textwidth]{images/Robot_reel.jpg}
+  };
+  \begin{scope}[x={(image.south east)},y={(image.north west)}]
+    % Annotations avec flèches (coordonnées relatives 0-1)
+    % Ajuste les positions (x,y) selon ton image
+    
+    % Robot UR10
+    \draw[-Stealth, thick, red, line width=1.5pt] (0.15,0.75) -- (0.35,0.55);
+    \node[fill=white, rounded corners, font=\small\bfseries] at (0.08,0.78) {UR10 Robot};
+    
+    % AprilTag
+    \draw[-Stealth, thick, blue, line width=1.5pt] (0.85,0.8) -- (0.65,0.65);
+    \node[fill=white, rounded corners, font=\small\bfseries] at (0.92,0.82) {AprilTag};
+    
+    % Workspace
+    \draw[-Stealth, thick, green!60!black, line width=1.5pt] (0.5,0.15) -- (0.5,0.35);
+    \node[fill=white, rounded corners, font=\small\bfseries] at (0.5,0.08) {Workspace};
+    
+    % Caméra (si visible, ajuste la position)
+    \draw[-Stealth, thick, orange, line width=1.5pt] (0.85,0.4) -- (0.7,0.45);
+    \node[fill=white, rounded corners, font=\small\bfseries] at (0.92,0.38) {Camera};
+    
+  \end{scope}
+\end{tikzpicture}
+\caption{Real-world setup with labeled components: UR10 manipulator, camera, AprilTag markers, and defined workspace}
+\label{fig:rl_cycle}
+\end{figure}
+
+The physical system consists of a Universal Robots UR10 manipulator (6 degrees of freedom), a webcam for perception, and AprilTag fiducial markers placed in a defined workspace (X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height). This setup provides a controlled environment for training data generation and real-world validation.
+
+\textbf{Perception and Localization.} The camera detects AprilTag markers and estimates their 3D positions relative to the camera. To enable motion planning, we establish a fixed world coordinate system anchored to one reference tag (Tag 1) with a vertical offset of 21.5cm to align with the robot's base frame. All other tags are then localized in this consistent world frame. This approach avoids drift: as long as the reference tag is visible, the coordinate system remains stable.
+
+\textbf{Motion Planning Pipeline.} The system uses MoveIt2 to generate collision-free trajectories. Given a target position in world coordinates, MoveIt2 first computes inverse kinematics to find a valid starting joint configuration, then plans a smooth Cartesian path that moves the end-effector in a straight line while respecting joint limits and avoiding collisions.
+
+\textbf{Training Data Generation.} To create supervised learning data, we generate random straight-line trajectories between points in the workspace. Each trajectory is planned by MoveIt2, then resampled to a fixed length of 64 timesteps (5.33 seconds at 12Hz control frequency) . For real-world validation, we also generate trajectories between actual physical tag positions, ensuring the dataset reflects real geometric constraints.
+
+\textbf{Model Consistency.} Both ROS2 and Isaac Lab use identical robot models, ensuring centimeter-precise kinematic alignment. This consistency is critical: any mismatch in link lengths or joint axes would cause policies trained in simulation to fail on the real robot.
+
+
 
 \section{Isaac Lab Digital Twin}
 % To complete (~1.5 pages):

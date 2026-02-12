@@ -1,37 +1,13 @@
-% Introduction (~1.5 pages)
+% Introduction (~1 page)
 
-\section{Context and Problem Statement}
+Industrial robotics traditionally relies on pre-programmed trajectories, which lack adaptability when facing calibration errors or environmental variations. Vision-based control systems using fiducial markers (e.g., AprilTags) enable environmental perception but introduce new challenges: camera calibration errors, marker detection noise, and perception latency can cause positioning inaccuracies critical for millimeter-precision tasks.
 
-Industrial robotics has traditionally relied on pre-programmed trajectories, where robots execute fixed motion sequences in highly structured environments. While this approach ensures predictability and safety, it suffers from a fundamental limitation: lack of adaptability. When faced with calibration errors, sensor noise, or environmental variations, classical control systems cannot compensate, leading to task failures or degraded performance.
+The core problem is: \textit{How can a robotic manipulator achieve precise trajectory tracking despite perception errors while maintaining safety guarantees?} Classical motion planners like MoveIt ensure collision-free trajectories but cannot adapt to real-time perception errors, while end-to-end learned controllers lack safety guarantees and require extensive real-world training data.
 
-The integration of vision-based control systems, such as cameras with fiducial markers (e.g., AprilTags), offers a promising solution by enabling robots to perceive and adapt to their environment. However, vision systems introduce new challenges: camera calibration errors, marker detection noise, and perception latency can all contribute to positioning inaccuracies. In applications requiring millimeter-level precision, such as pick-and-place operations or assembly tasks, these uncertainties become critical obstacles.
+This work proposes a hybrid residual learning approach: MoveIt generates safe nominal trajectories, while Reinforcement Learning (RL) learns small corrective actions to compensate for perception and calibration errors, ensuring the robot remains safe while gaining real-world adaptability.
 
-The core problem addressed in this thesis is: \textit{How can a robotic manipulator achieve precise trajectory tracking despite perception errors and calibration uncertainties, while maintaining safety guarantees?} Classical motion planners like MoveIt ensure collision-free trajectories but cannot adapt to real-time perception errors. On the other hand, end-to-end learned controllers may lack safety guarantees and require extensive real-world training data, which is expensive and potentially dangerous to collect.
+\vspace{0.3cm}
+\noindent\textbf{Approach and Objectives.} The primary objective is to develop a residual RL pipeline for robust trajectory tracking on a UR10 manipulator. The system consists of: (1) a UR10 arm with camera observing AprilTag markers for localization, (2) ROS2/MoveIt generating collision-free trajectories, (3) PPO policy training in NVIDIA Isaac Lab with 4096 parallel environments, and (4) validation through extensive domain randomization—varying sensor noise, calibration errors, and dynamics—to demonstrate robustness suggesting successful sim-to-real transfer potential.
 
-This work proposes a hybrid approach that combines the strengths of both paradigms: using MoveIt to generate safe, collision-free nominal trajectories, and employing Reinforcement Learning (RL) to learn small corrective actions that compensate for perception and calibration errors. This residual learning strategy ensures that the robot remains within safe operational bounds while gaining the adaptability needed to handle real-world uncertainties.
-
-\section{Approach and Objectives}
-
-The primary objective of this thesis is to develop and validate a residual reinforcement learning pipeline for robust trajectory tracking on a Universal Robots UR10 manipulator. The system architecture consists of three main components:
-
-\textbf{Hardware Setup:} A UR10 6-DOF robotic arm equipped with a camera observing AprilTag fiducial markers placed in the workspace. The AprilTags provide relative localization between the robot base and target positions, simulating a vision-based pick-and-place scenario.
-
-\textbf{Trajectory Generation (ROS2):} Using the Robot Operating System 2 (ROS2) framework and the MoveIt motion planning library, we generate collision-free trajectories within a defined workspace. These trajectories consist of random straight-line motions between AprilTag positions, providing diverse training data while ensuring kinematic feasibility.
-
-\textbf{Policy Training (Isaac Lab):} The reinforcement learning policy is trained using NVIDIA Isaac Lab, a GPU-accelerated robotics simulation platform capable of running 4096 parallel environments simultaneously. This massive parallelization enables rapid policy training that would be impractical on a physical robot. We employ the Proximal Policy Optimization (PPO) algorithm, which has proven stable and sample-efficient for continuous control tasks in robotics.
-
-\textbf{Validation Strategy:} Due to time constraints limiting physical robot testing, we adopt a validation methodology based on extensive domain randomization within Isaac Lab. By testing the learned policy under varied conditions—including sensor noise, calibration errors, and dynamic parameter variations—we demonstrate robustness that suggests potential for successful sim-to-real transfer. This approach follows established practices in the robotics community for validating policies before real-world deployment.
-
-\section{Contributions and Thesis Organization}
-
-The main contributions of this work are:
-
-\begin{itemize}
-    \item A complete residual reinforcement learning pipeline integrating ROS2 trajectory planning with Isaac Lab-based policy training
-    \item A comprehensive validation methodology using domain randomization to assess policy robustness across multiple perturbation types
-    \item Quantitative analysis demonstrating that residual learning significantly outperforms baseline motion planning alone in the presence of perception errors
-    \item A replicable framework applicable to other manipulation tasks and robot platforms
-\end{itemize}
-
-The remainder of this thesis is organized as follows: Chapter 1 provides background on motion planning, reinforcement learning, and residual learning approaches. Chapter 2 details the system architecture, including the ROS2 pipeline, Isaac Lab digital twin, and PPO implementation. Chapter 3 describes the validation strategy based on domain randomization, defining four test protocols to assess different aspects of robustness. Chapter 4 presents experimental results, including training convergence, baseline performance, and robustness to calibration errors, sensor noise, and dynamic variations. Finally, Chapter 5 concludes with a summary of findings, discussion of limitations, and directions for future work, particularly regarding deployment on the physical UR10 robot.
+The remainder of this thesis provides background on motion planning and reinforcement learning, details the system architecture and PPO implementation, describes the domain randomization validation strategy, presents experimental results, and concludes with findings and future work toward physical deployment.
 
