@@ -1,0 +1,55 @@
+
+\begin{tikzpicture}[node distance=2cm, auto,
+    % Styles des blocs
+    file/.style={cylinder, shape border rotate=90, draw, aspect=0.25, align=center, fill=yellow!20, minimum height=1.5cm},
+    script/.style={rectangle, draw, rounded corners, fill=blue!10, align=center, minimum height=1cm, minimum width=2.5cm},
+    process/.style={rectangle, draw, fill=green!10, align=center, minimum height=1cm},
+    output/.style={rectangle, draw, fill=red!10, align=center},
+    arrow/.style={thick,->,>=stealth}
+]
+
+    % --- ENTRÉES COMMUNES ---
+    \node[file] (traj) {Fichier Trajectoire\\(.npz)};
+    \node[file, right=of traj, xshift=1cm] (config) {Config Env\\(PurementRlEnvCfg)};
+
+    % --- BRANCHE BOUCLE FERMÉE (CLOSED LOOP / RL) ---
+    % Training
+    \node[script, below=of traj, yshift=-1cm] (script_train) {\textbf{Training}\\rsl\_rl/train.py};
+    \node[file, below=of script_train, fill=purple!20] (model) {Modèle Entraîné\\(.pt)};
+    
+    % Inference
+    \node[script, below=of model] (script_cl) {\textbf{Inférence RL}\\isaaclab\_deploy\_policy\_npz.py};
+    \node[process, below=of script_cl] (act_cl) {Action = Réseau(Obs)\\$q_{target} = q_{ref} + \text{action}$};
+    \node[file, below=of act_cl, fill=orange!20] (log_cl) {Log Closed-Loop\\(.npz)};
+
+    % --- ANALYSE ---
+    \node[script, right=of log_cl, xshift=2cm] (analysis) {\textbf{Analyse \& Plot}\\plot\_deploy\_log.py};
+    \node[output, below=of analysis, fill=white] (plot) {Graphiques Comparatifs\\(.png)};
+
+    % --- LIENS ---
+
+    % Liens Training
+    \draw[arrow] (traj) -- (script_train);
+    \draw[arrow] (config) |- (script_train);
+    \draw[arrow] (script_train) -- (model);
+
+    % Liens Inference (Closed Loop)
+    \draw[arrow] (model) -- (script_cl);
+    % Trajectoire vers script d'inférence (contourne les autres nœuds par la gauche)
+    \draw[arrow] (traj.west) to[out=180,in=180, looseness=1.2] node[midway, left] {Ref} (script_cl.west);
+    \draw[arrow] (config) |- (script_cl);
+    \draw[arrow] (script_cl) -- (act_cl);
+    \draw[arrow] (act_cl) -- (log_cl);
+
+    % Liens Analyse
+    \draw[arrow] (log_cl) -- (analysis);
+    \draw[arrow] (analysis) -- (plot);
+
+    % --- CADRES / GROUPES ---
+    \begin{pgfonlayer}{background}
+        % Cadre Closed Loop
+        \node[fit=(script_train) (model) (script_cl) (act_cl) (log_cl), draw, dashed, inner sep=0.5cm, label={[anchor=north]north:\textbf{Boucle Fermée (RL)}}] {};
+    \end{pgfonlayer}
+
+\end{tikzpicture}
+

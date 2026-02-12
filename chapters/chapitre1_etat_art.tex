@@ -1,23 +1,14 @@
-% Chapter 1: Background (~2.5 pages)
+\section{Le Robot UR10}
+Caractéristiques et cinématique.
 
-\section{Motion Planning and ROS2/MoveIt}
-% To complete (~0.8 page):
-% - UR10 manipulator: 6 DoF, forward/inverse kinematics
-% - MoveIt: Collision-free trajectory planning
-% - Limitation: Cannot adapt to calibration errors or perception noise
-% Diagram: UR10 with 6 joints labeled
+\section{Apprentissage par Renforcement (RL)}
+Expliquer simplement le cycle Agent-Environnement (Action, État, Récompense).
 
-\section{Reinforcement Learning for Robotics}
-% To complete (~1 page):
-% - RL basics: Agent observes state, takes action, receives reward
-% - Sample efficiency problem: Real robot training is slow/dangerous
-% - Solution: GPU-accelerated simulation (Isaac Lab: 4096 parallel envs)
-% - PPO algorithm: Stable, sample-efficient, widely used in robotics
-% Diagram: RL cycle (observation → policy → action → reward)
+\section{Algorithme PPO (Proximal Policy Optimization)}
+Pourquoi cet algorithme est standard pour la robotique (stabilité).
 
 \section{Residual Learning}
-% To complete (~0.7 page):
-% - Concept: Nominal controller (MoveIt) + learned corrections (PPO)
-% - Equation: a_final = a_MoveIt + a_RL
-% - Advantages: Safety (MoveIt ensures feasibility), faster training, interpretability
-% - Related work: Cite 1-2 papers on residual RL in robotics
+Expliquer que l'IA ne remplace pas le contrôleur classique mais "corrige" ses erreurs.
+
+\section{Sim-to-Real}
+Les défis (bruit capteur, friction, latence).

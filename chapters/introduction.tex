@@ -1,23 +1,14 @@
-% Introduction (~1.5 pages)
+\section{Contexte}
+L'essor de l'apprentissage par renforcement (RL) en robotique et la problématique du "Reality Gap" (l'écart entre simulation et réalité).
 
-\section{Context and Problem Statement}
-% To complete (~0.7 page):
-% - Classical robotics: Pre-programmed trajectories lack flexibility
-% - Vision-based control: Adds adaptability but introduces calibration/noise errors
-% - Problem: How to achieve precise trajectory tracking despite perception errors?
-% - Challenge: Combine safety (MoveIt planning) with adaptability (RL corrections)
+\section{Problématique}
+Comment garantir un mouvement fluide et précis pour un UR10 en utilisant des données visuelles imparfaites ?
 
-\section{Approach and Objectives}
-% To complete (~0.5 page):
-% - Objective: UR10 trajectory tracking using residual RL (MoveIt + PPO)
-% - Setup: UR10 + Camera + AprilTags for localization
-% - Training: Isaac Lab with 4096 parallel environments
-% - Validation: Domain randomization (sensor noise, calibration errors, dynamics)
+\section{Objectif}
+Développer une approche de Residual Reinforcement Learning pour une tâche de reaching planaire (2D).
 
-\section{Contributions and Thesis Organization}
-% To complete (~0.3 page):
-% - Contribution: Complete residual RL pipeline with domain randomization validation
-% - Chapter 1: Background (motion planning, RL, residual learning)
+\section{Annonce du plan}
+De la configuration logicielle à la validation Sim-to-Sim.
 % - Chapter 2: System architecture (ROS2, Isaac Lab, PPO)
 % - Chapter 3: Validation strategy (domain randomization tests)
 % - Chapter 4: Experimental results
