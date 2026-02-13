@@ -1,14 +1,64 @@
-\section{Environnement Isaac Lab}
-Justification du choix (parallélisation massive de 4096 robots).
+\section{Isaac Lab Environment}
+The choice of \textbf{Isaac Lab} is justified by its capability for \textit{massive parallelization} on GPU.
+In our configuration, we instantiate \textbf{4096 simultaneous environments} ($N_{envs} = 4096$). These environments are capable of iteratively simulating various parameter configurations, including system noise and environmental randomization.
+This allows collecting millions of experience samples in a few minutes, drastically accelerating training compared to real-time or 
+standard CPU-based simulation.
 
-\section{Perception Synthétique \& Bruit}
-Expliquer comment on simule les erreurs du monde réel (Jitter visuel, erreur de calibration, latence de 20-60ms).
+\section{Synthetic Perception \& Noise}
+To bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections are explicitly modeled in the simulator. These perturbations affect both the agent's perception and the physical dynamics:
 
-\section{Modélisation de l'IA}
-\subsection{Entrées (Observations)}
-Positions articulaires, vecteur cible visual, etc.
-\subsection{Sorties (Actions)}
-Corrections articulaires (Residuals) limitées à $\pm0.05$ rad pour la sécurité.
+\begin{itemize}
+    \item \textbf{Camera Model (Pinhole)}: A virtual camera is placed with realistic intrinsic parameters ($f_x=491.6, f_y=488.0$) and a defined extrinsic pose.
+    \item \textbf{Projection Noise (Visual Jitter)}: A re-projection error is added to the camera measurements as Gaussian noise on the pixels ($\sigma_{pixel} = 0.355$).
+    \item \textbf{3D Measurement Noise (XYZ Jitter)}: Direct Gaussian noise is added to the cartesian position measurement of the end-effector to simulate depth estimation noise ($\sigma_{xyz} = 2$ mm).
+    \item \textbf{Calibration Error (Extrinsic Bias)}: A random bias is added to the camera pose, sampled uniformly within a sphere of radius $\pm 2$ cm ($b_{ext} \sim \mathcal{U}(-0.02, 0.02)$ m). This bias is resampled at each episode.
+    \item \textbf{Target Noise (Goal Uncertainty)}: The desired target position $EE_{des}$ observed by the agent is corrupted by Gaussian noise ($\sigma_{target} = 2$ mm), simulating uncertainty in the tracking objective.
+    \item \textbf{Latency (Action Delay)}: Communication delay is simulated by delaying action application by \textbf{1 to 3 simulation steps} (approx. 17--50 ms).
+    \item \textbf{Dynamics Randomization}: To account for physical discrepancies, the following parameters are randomized per episode:
+    \begin{itemize}
+        \item \textbf{Payload Mass}: A random mass is attached to the end-effector ($m_{load} \sim \mathcal{U}(0.0, 0.5)$ kg).
+        \item \textbf{Joint Damping}: Scaled by a multiplicative factor $\in [0.8, 1.2]$.
+        \item \textbf{Friction}: Surface friction coefficients are randomized (Static $\mu_s \in [0.6, 1.2]$, Dynamic $\mu_d \in [0.5, 1.0]$).
+    \end{itemize}
+\end{itemize}
+\section{AI Modeling}
 
-\section{Fonction de Récompense (Reward)}
-Détail mathématique simplifié pour expliquer comment on incite l'IA à être précise et fluide.
+\subsection{Inputs (Observations)}
+The observation space, with a dimension of 40, consists of:
+\begin{enumerate}
+    \item \textbf{Proprioception}: Joint positions $q \in \mathbb{R}^6$, Joint velocities $\dot{q} \in \mathbb{R}^6$.
+    \item \textbf{Reference}: Reference joint positions $q_{ref} \in \mathbb{R}^6$ and tracking error $e_q = q - q_{ref} \in \mathbb{R}^6$.
+    \item \textbf{Task (Cartesian Space)}:
+    \begin{itemize}
+        \item Measured end-effector position (noisy) $EE_{meas} \in \mathbb{R}^3$.
+        \item Desired target position $EE_{des} \in \mathbb{R}^3$.
+        \item Cartesian error $e_{EE} = EE_{meas} - EE_{des} \in \mathbb{R}^3$ and its norm $\|e_{EE}\| \in \mathbb{R}^1$.
+    \end{itemize}
+    \item \textbf{Previous State}: Last applied actions $a_{t-1} \in \mathbb{R}^6$.
+\end{enumerate}
+
+\subsection{Outputs (Actions)}
+The neural network predicts \textbf{additive joint corrections} (residuals).
+These values are normalized between $[-1, 1]$ by the $\tanh$ activation function, then scaled by a factor $k_{scale} = 0.05$.
+This limits the agent's authority to $\pm 0.05$ rad ($\approx 2.8^\circ$) per time step around the reference trajectory, ensuring movement safety and stability.
+
+\section{Reward Function}
+The reward function is designed to maximize precision while minimizing energy and vibrations. It uses an exponential kernel to be dense and bounded within $[0, 1]$.
+
+Simplified mathematical formulation ($r_t$):
+\begin{equation}
+    r_t = \underbrace{\exp\left(-\frac{\|e_{pos}\|^2}{\sigma_{pos}^2}\right)}_{\text{Precision}}
+    - \underbrace{\lambda_{v} \|\dot{x}_{ee}\|^2}_{\text{Smoothness}}
+    - \underbrace{\lambda_{a} \|\ddot{x}_{ee}\|^2}_{\text{Stability}}
+    + r_{bonus}
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Precision Term}: Rewards proximity to the cartesian target ($\sigma_{pos} = 0.02$ m).
+    \item \textbf{Regularization Penalties}:
+    \begin{itemize}
+        \item End-effector velocity ($\lambda_{v}=0.03$) to avoid jerky movements.
+        \item End-effector acceleration ($\lambda_{a}=0.01$) to reduce vibrations (jitter).
+    \end{itemize}
+    \item \textbf{Bonus}: A constant bonus ($0.5$) is awarded if the error is below a critical threshold (2 cm), incentivizing the agent to maintain final precision.
+\end{itemize}
