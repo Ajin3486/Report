@@ -154,3 +154,15 @@ r_t = \underbrace{\exp\left(-\frac{\|e_{pos}\|^2}{\sigma_{pos}^2}\right)}_{r_{tr
     \item \textbf{Bonus}: A constant bonus ($0.5$) is awarded if the error is below a critical threshold (2 cm), incentivizing the agent to maintain final precision.
 \end{itemize}
 
+\section{Training Results}
+We evaluated the learning process by monitoring the average reward per episode.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/learning_curve.png}
+    \caption{Learning curves: average reward per episode during training.}
+    \label{fig:learning_curve}
+\end{figure}
+
+The results show rapid and stable convergence. Figure~\ref{fig:learning_curve} illustrates the training progress. The reward curve demonstrates stable convergence without instabilities, indicating efficient learning of the correction policy.
+

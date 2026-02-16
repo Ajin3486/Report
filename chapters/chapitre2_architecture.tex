@@ -103,6 +103,24 @@ The physical system (Figure \ref{fig:real_setup}) corresponds to Stage 1 of the 
   \item \textbf{Camera (4):} Webcam mounted in an eye-to-hand configuration for AprilTag detection and 3D localization of target objects.
 \end{itemize}
 
+\subsubsection{Camera and AprilTag Specifications}
+
+\textbf{Camera hardware.} We use a Logitech C930e webcam configured at 640$\times$480 resolution running at 30 frames per second. This consumer-grade camera provides sufficient image quality for AprilTag detection while maintaining real-time performance.
+
+\textbf{Intrinsic calibration.} The camera's intrinsic parameters (focal lengths, principal point, distortion coefficients) were calibrated using a standard checkerboard calibration pattern. The resulting camera matrix is:
+\begin{equation}
+K = \begin{bmatrix}
+507.71 & 0 & 318.97 \\
+0 & 507.01 & 237.61 \\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+with radial and tangential distortion coefficients modeled using the plumb\_bob model ($k_1=0.149, k_2=-0.675, p_1=-0.002, p_2=-0.001, k_3=1.382$). These parameters enable accurate 3D pose estimation from 2D image measurements.
+
+\textbf{AprilTag configuration.} We use four AprilTag markers from the 36h11 family, each measuring 10cm $\times$ 10cm. The tag IDs are 0, 1, 2, and 3, with tag 1 serving as the reference anchor frame. The 36h11 family provides robust detection with low false positive rates while maintaining computational efficiency.
+
+\textbf{Extrinsic calibration.} The transformation between the robot base and the reference tag (2) was obtained through manual physical measurement using a measuring tape. The measured offsets are: $\Delta x = -0.193$ m, $\Delta y = -0.255$ m, $\Delta z = -0.01$ m relative to the robot base frame. These values are encoded as a static TF transformation in the ROS 2 launch file, establishing the world coordinate frame origin. While manual calibration is less precise than automatic hand-eye calibration methods, it provides sufficient accuracy for our workspace dimensions and is straightforward to implement.
+
 \subsection{Coordinate Frame Transformations}
 
 \begin{figure}[h]

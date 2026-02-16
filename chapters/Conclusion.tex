@@ -1,5 +1,35 @@
-\section{Bilan}
-Réussite de l'intégration ROS 2 / Isaac Lab.
+\section{Summary of Contributions}
 
-\section{Perspectives}
-Finaliser le test MuJoCo pour prouver la robustesse et déploiement final sur le robot réel avec le filtre de sécurité.
+This work successfully demonstrated a hybrid approach combining classical motion planning with reinforcement learning for robust trajectory tracking on a UR10 manipulator. The key contributions include:
+
+\textbf{System Integration.} We established a complete pipeline connecting ROS 2/MoveIt for trajectory generation, Isaac Lab for massively parallel PPO training (4096 environments), and a residual learning architecture where learned corrections enhance rather than replace classical planning. This integration proves that traditional robotics tools can be effectively combined with modern deep RL frameworks.
+
+\textbf{Residual Learning Architecture.} The residual control formulation $a_{total} = a_{ref} + a_{residual}$ preserves safety guarantees from MoveIt's collision-free planning while enabling learned adaptations to perception errors and calibration inaccuracies. This approach significantly reduces the learning complexity compared to end-to-end RL by constraining the policy to learn only small corrective actions ($\pm 0.05$ rad/s).
+
+\textbf{Domain Randomization Strategy.} We implemented comprehensive noise modeling including sensor jitter ($\pm 2$mm), calibration errors ($\pm 2$cm), action delays (17--50ms), and dynamics randomization (payload, friction, damping). This multi-layer perturbation strategy forces the policy to generalize beyond perfect simulation conditions.
+
+\textbf{Validation Results.} The trained policy achieved strong performance in Isaac Lab validation: 69.7\% improvement in mean tracking error (28.4mm $\rightarrow$ 8.6mm), 55.6\% reduction in maximum error (52.0mm $\rightarrow$ 23.1mm), and 71.4\% improvement in consistency (standard deviation: 15.4mm $\rightarrow$ 4.4mm). The agent learned emergent strategies such as systematic joint bias compensation (+0.63° on J4) and adaptive speed modulation.
+
+\section{Limitations and Lessons Learned}
+
+\textbf{Sim-to-Sim Validation Only.} The current validation remains within Isaac Lab's PhysX engine. While domain randomization improves robustness, there is a risk that the policy exploited simulation-specific artifacts (numerical precision, simplified contact models, deterministic dynamics) that differ from physical reality. This represents the primary limitation of this work.
+
+\textbf{Time Constraints.} The original objective was full sim-to-real transfer on the physical UR10. However, time limitations prevented extensive real-world testing. Deploying learned policies on physical systems requires careful safety protocols, failure recovery mechanisms, and iterative tuning—processes that demand significant experimentation time beyond the scope of this project.
+
+\textbf{Calibration Dependency.} Although the policy is trained to handle calibration errors up to $\pm 2$cm, deployment success depends critically on initial calibration quality. If real-world errors exceed the training distribution, performance degradation is expected. This highlights the importance of good initial calibration even when using adaptive controllers.
+
+\section{Future Work and Perspectives}
+
+If given additional time, several validation steps would strengthen confidence in real-world transferability:
+
+\textbf{Sim-to-Sim Transfer: Isaac Lab $\rightarrow$ MuJoCo.} The immediate next step is evaluating the trained policy in a physically different simulator (MuJoCo) with distinct physics engines, contact solvers, and numerical integrators. Success in cross-simulator transfer would provide strong evidence that the policy learned generalizable control strategies rather than simulation-specific heuristics. MuJoCo's different friction model and more accurate contact dynamics would serve as an intermediate reality gap test before attempting real robot deployment.
+
+\textbf{Physical Robot Deployment.} The ultimate objective is deployment on the physical UR10. This transition from simulation to reality represents the final validation step, where the policy would face true sensor noise, unmodeled dynamics, and real-world uncertainties that cannot be perfectly captured in simulation. Successful deployment would require careful safety protocols and progressive testing to ensure reliable operation.
+
+\textbf{Extended Scenarios.} Beyond trajectory following, the learned residual control could be extended to more complex manipulation tasks involving object grasping, dynamic obstacle avoidance, and contact-rich interactions. The current framework provides a solid foundation that could be enriched with additional perception modalities (RGB-D cameras, force-torque sensors) and more sophisticated task specifications.
+
+\section{Conclusion}
+
+This work demonstrates that residual reinforcement learning offers a promising middle ground between classical motion planning and end-to-end learned control. By combining the safety and interpretability of traditional planners with the adaptability of deep RL, we achieve robust trajectory tracking under realistic perception noise and calibration errors—at least within simulation.
+
+The strong validation results in Isaac Lab (>69\% error reduction) confirm the technical viability of the approach. However, the true test lies in physical deployment, which remains the natural continuation of this work. With proper safety protocols, cross-simulator validation, and iterative refinement, sim-to-real transfer is an achievable next step that would validate the practical utility of this hybrid architecture for real-world robotic manipulation.
