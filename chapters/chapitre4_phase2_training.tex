@@ -1,64 +1,87 @@
-\section{Isaac Lab Environment}
-The choice of \textbf{Isaac Lab} is justified by its capability for \textit{massive parallelization} on GPU.
-In our configuration, we instantiate \textbf{4096 simultaneous environments} ($N_{envs} = 4096$). These environments are capable of iteratively simulating various parameter configurations, including system noise and environmental randomization.
-This allows collecting millions of experience samples in a few minutes, drastically accelerating training compared to real-time or 
-standard CPU-based simulation.
+\section{Residual RL Training in Isaac Lab}
 
-\section{Synthetic Perception \& Noise}
-To bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections are explicitly modeled in the simulator. These perturbations affect both the agent's perception and the physical dynamics:
+This chapter describes the Isaac Lab simulation environment used for training the residual RL policy. We first explain the computational advantages of GPU-parallelization, then detail the synthetic perception modeling that bridges the sim-to-real gap, the PPO agent architecture, and finally the reward function design.
 
+\subsection{Simulation Environment}
+
+\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. In our configuration, we instantiate \textbf{4096 simultaneous environments} running in parallel. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{images/prallele_training.png}
+\caption{Isaac Lab training with 100 parallel robot environments}
+\label{fig:isaac_parallel}
+\end{figure}
+
+\textbf{ROS 2 dataset as reference trajectories.} The dataset of 500 trajectories generated with MoveIt2 (Chapter 3) is loaded into Isaac Lab and serves as the nominal reference behavior. During each training episode, a random trajectory from this dataset is sampled, providing the reference joint positions $q_{ref}(t)$ that the agent will learn to improve through residual corrections. This approach ensures the policy learns to enhance an already safe baseline rather than learning control from scratch.
+
+\subsection{Synthetic Perception \& Reality Gap Modeling}
+
+To bridge the sim-to-real gap, we explicitly model real-world imperfections in the simulator. Rather than rendering camera images (which would be computationally expensive), we use a mathematical camera model with injected noise:
+
+\textbf{Camera model (Pinhole).} A virtual camera is placed with realistic intrinsic parameters ($f_x=491.6, f_y=488.0$) matching the physical webcam specifications. The camera's extrinsic pose (position and orientation relative to the robot base) is calibrated to match the real setup.
+
+\textbf{Measurement noise injection:}
 \begin{itemize}
-    \item \textbf{Camera Model (Pinhole)}: A virtual camera is placed with realistic intrinsic parameters ($f_x=491.6, f_y=488.0$) and a defined extrinsic pose.
-    \item \textbf{Projection Noise (Visual Jitter)}: A re-projection error is added to the camera measurements as Gaussian noise on the pixels ($\sigma_{pixel} = 0.355$).
-    \item \textbf{3D Measurement Noise (XYZ Jitter)}: Direct Gaussian noise is added to the cartesian position measurement of the end-effector to simulate depth estimation noise ($\sigma_{xyz} = 2$ mm).
-    \item \textbf{Calibration Error (Extrinsic Bias)}: A random bias is added to the camera pose, sampled uniformly within a sphere of radius $\pm 2$ cm ($b_{ext} \sim \mathcal{U}(-0.02, 0.02)$ m). This bias is resampled at each episode.
-    \item \textbf{Target Noise (Goal Uncertainty)}: The desired target position $EE_{des}$ observed by the agent is corrupted by Gaussian noise ($\sigma_{target} = 2$ mm), simulating uncertainty in the tracking objective.
-    \item \textbf{Latency (Action Delay)}: Communication delay is simulated by delaying action application by \textbf{1 to 3 simulation steps} (approx. 17--50 ms).
-    \item \textbf{Dynamics Randomization}: To account for physical discrepancies, the following parameters are randomized per episode:
-    \begin{itemize}
-        \item \textbf{Payload Mass}: A random mass is attached to the end-effector ($m_{load} \sim \mathcal{U}(0.0, 0.5)$ kg).
-        \item \textbf{Joint Damping}: Scaled by a multiplicative factor $\in [0.8, 1.2]$.
-        \item \textbf{Friction}: Surface friction coefficients are randomized (Static $\mu_s \in [0.6, 1.2]$, Dynamic $\mu_d \in [0.5, 1.0]$).
-    \end{itemize}
+  \item \textbf{Sensor jitter (±2mm):} Gaussian noise is added to the 3D Cartesian position measurements of the end-effector: $\sigma_{xyz} = 2$ mm. This simulates depth estimation uncertainty and measurement quantization inherent to real vision systems.
+  
+  \item \textbf{Calibration error (±2cm):} A random bias is added to the camera's extrinsic pose, sampled uniformly within $\pm 2$ cm: $b_{ext} \sim \mathcal{U}(-0.02, 0.02)$ m. This bias remains constant during an episode but is resampled between episodes, forcing the policy to be robust to calibration inaccuracies.
+  
+  \item \textbf{Target uncertainty:} The desired target position $EE_{des}$ observed by the agent is corrupted by Gaussian noise ($\sigma_{target} = 2$ mm), simulating uncertainty in goal localization.
 \end{itemize}
-\section{AI Modeling}
 
-\subsection{Inputs (Observations)}
-The observation space, with a dimension of 40, consists of:
-\begin{enumerate}
-    \item \textbf{Proprioception}: Joint positions $q \in \mathbb{R}^6$, Joint velocities $\dot{q} \in \mathbb{R}^6$.
-    \item \textbf{Reference}: Reference joint positions $q_{ref} \in \mathbb{R}^6$ and tracking error $e_q = q - q_{ref} \in \mathbb{R}^6$.
-    \item \textbf{Task (Cartesian Space)}:
-    \begin{itemize}
-        \item Measured end-effector position (noisy) $EE_{meas} \in \mathbb{R}^3$.
-        \item Desired target position $EE_{des} \in \mathbb{R}^3$.
-        \item Cartesian error $e_{EE} = EE_{meas} - EE_{des} \in \mathbb{R}^3$ and its norm $\|e_{EE}\| \in \mathbb{R}^1$.
-    \end{itemize}
-    \item \textbf{Previous State}: Last applied actions $a_{t-1} \in \mathbb{R}^6$.
-\end{enumerate}
+\textbf{Additional domain randomization:}
+\begin{itemize}
+  \item \textbf{Action delay:} Communication latency is simulated by delaying action application by 1 to 3 simulation steps (approximately 17--50 ms).
+  
+  \item \textbf{Dynamics randomization:} Physical parameters are randomized per episode:
+  \begin{itemize}
+    \item Payload mass attached to end-effector: $m_{load} \sim \mathcal{U}(0.0, 0.5)$ kg
+    \item Joint damping scaled by factor $\in [0.8, 1.2]$
+    \item Surface friction coefficients: Static $\mu_s \in [0.6, 1.2]$, Dynamic $\mu_d \in [0.5, 1.0]$
+  \end{itemize}
+\end{itemize}
 
-\subsection{Outputs (Actions)}
-The neural network predicts \textbf{additive joint corrections} (residuals).
-These values are normalized between $[-1, 1]$ by the $\tanh$ activation function, then scaled by a factor $k_{scale} = 0.05$.
-This limits the agent's authority to $\pm 0.05$ rad ($\approx 2.8^\circ$) per time step around the reference trajectory, ensuring movement safety and stability.
+This comprehensive noise modeling ensures the learned policy is robust to real-world uncertainties rather than overfitting to perfect simulation conditions.
 
-\section{Reward Function}
-The reward function is designed to maximize precision while minimizing energy and vibrations. It uses an exponential kernel to be dense and bounded within $[0, 1]$.
+\subsection{PPO Agent Architecture}
 
-Simplified mathematical formulation ($r_t$):
+\textbf{Observation space ($S_t$, dimension 40).} The agent observes:
+\begin{itemize}
+  \item \textbf{Proprioception:} Joint positions $q \in \mathbb{R}^6$, joint velocities $\dot{q} \in \mathbb{R}^6$
+  \item \textbf{Reference tracking:} Reference joint positions $q_{ref} \in \mathbb{R}^6$, tracking error $e_q = q - q_{ref} \in \mathbb{R}^6$
+  \item \textbf{Task-space information:} Measured end-effector position (noisy) $EE_{meas} \in \mathbb{R}^3$, desired target position $EE_{des} \in \mathbb{R}^3$, Cartesian error $e_{EE} = EE_{meas} - EE_{des} \in \mathbb{R}^3$ and its norm $\|e_{EE}\| \in \mathbb{R}^1$
+  \item \textbf{Previous actions:} Last applied residual corrections $a_{t-1} \in \mathbb{R}^6$
+\end{itemize}
+
+This observation combines proprioceptive sensing (internal robot state), reference trajectory information, and noisy visual feedback (simulated camera measurements), providing the agent with all information needed to compute corrective actions.
+
+\textbf{Action space ($A_t$, dimension 6).} The neural network predicts \textbf{additive joint velocity corrections} (residuals) in radians per second. These values are normalized between $[-1, 1]$ by the $\tanh$ activation function, then scaled by a safety factor $k_{scale} = 0.05$ rad/s. This limits the agent's authority to $\pm 0.05$ rad/s ($\approx 2.8°$/s) around the reference trajectory, ensuring movement safety and stability. The final control command is:
 \begin{equation}
-    r_t = \underbrace{\exp\left(-\frac{\|e_{pos}\|^2}{\sigma_{pos}^2}\right)}_{\text{Precision}}
-    - \underbrace{\lambda_{v} \|\dot{x}_{ee}\|^2}_{\text{Smoothness}}
-    - \underbrace{\lambda_{a} \|\ddot{x}_{ee}\|^2}_{\text{Stability}}
-    + r_{bonus}
+a_{total} = a_{ref}(t) + a_{residual}(t)
+\end{equation}
+where $a_{ref}(t)$ comes from the MoveIt2 trajectory and $a_{residual}(t)$ is the learned correction.
+
+\subsection{Reward Function}
+
+The reward function is designed to maximize tracking precision while minimizing jerky movements and energy consumption. We use an exponential kernel to provide dense, bounded rewards within $[0, 1]$:
+
+\begin{equation}
+r_t = \underbrace{\exp\left(-\frac{\|e_{pos}\|^2}{\sigma_{pos}^2}\right)}_{r_{tracking}}
+- \underbrace{\lambda_{v} \|\dot{x}_{ee}\|^2}_{p_{smoothness}}
+- \underbrace{\lambda_{a} \|\ddot{x}_{ee}\|^2}_{p_{stability}}
++ \underbrace{r_{bonus}}_{r_{guide}}
 \end{equation}
 
+\textbf{Component breakdown:}
 \begin{itemize}
-    \item \textbf{Precision Term}: Rewards proximity to the cartesian target ($\sigma_{pos} = 0.02$ m).
-    \item \textbf{Regularization Penalties}:
-    \begin{itemize}
-        \item End-effector velocity ($\lambda_{v}=0.03$) to avoid jerky movements.
-        \item End-effector acceleration ($\lambda_{a}=0.01$) to reduce vibrations (jitter).
-    \end{itemize}
-    \item \textbf{Bonus}: A constant bonus ($0.5$) is awarded if the error is below a critical threshold (2 cm), incentivizing the agent to maintain final precision.
+  \item $r_{tracking}$: Precision term rewarding proximity to the Cartesian target ($\sigma_{pos} = 0.02$ m). The exponential ensures smooth gradients even far from the goal.
+  
+  \item $p_{smoothness}$: Penalty on end-effector velocity ($\lambda_{v}=0.03$) to avoid jerky movements that could damage hardware or objects.
+  
+  \item $p_{stability}$: Penalty on end-effector acceleration ($\lambda_{a}=0.01$) to reduce vibrations and oscillations, encouraging smooth motion profiles.
+  
+  \item $r_{guide}$: Constant bonus ($+0.5$) awarded when position error is below 2 cm, incentivizing the agent to achieve and maintain high precision at trajectory endpoints.
 \end{itemize}
+
+This multi-objective reward balances task success (reaching targets accurately) with control quality (smooth, stable motions), resulting in policies suitable for real-world deployment.
