@@ -1,59 +1,6 @@
 \section{System Architecture}
 
-This chapter provides an overview of the complete system architecture before diving into implementation details. We first describe the physical hardware components, then explain the coordinate transformation framework that enables precise motion planning, and finally present the global software pipeline connecting all components from data generation to validation.
-
-\subsection{Hardware Setup}
-
-\begin{figure}[h]
-\centering
-\begin{overpic}[width=0.35\textwidth]{images/Robot_reel.jpg}
-  \put(21,52){\colorbox{white}{\textbf{\textcolor{red}{1}}}}
-  \put(26,26){\colorbox{white}{\textbf{\textcolor{blue}{2}}}}
-  \put(22,13){\colorbox{white}{\textbf{\textcolor{green!60!black}{3}}}}
-  \put(24,93){\colorbox{white}{\textbf{\textcolor{orange}{4}}}}
-\end{overpic}
-\caption{Real-world setup: (1) UR10 manipulator, (2) reference tag, (3) Workspace area, (4) Camera}
-\label{fig:real_setup}
-\end{figure}
-
-The physical system (Figure \ref{fig:real_setup}) consists of:
-\begin{itemize}
-  \item \textbf{UR10 manipulator (1):} 6 degrees of freedom industrial robot providing the manipulation capabilities for pick-and-place tasks.
-  \item \textbf{Reference tag (2):} AprilTag marker anchoring the world coordinate system to ensure stable and repeatable measurements across all experiments.
-  \item \textbf{Workspace (3):} Defined planar area with dimensions X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height. This constrained workspace simplifies the learning problem while remaining representative of real pick-and-place scenarios.
-  \item \textbf{Camera (4):} Webcam mounted in an eye-to-hand configuration for AprilTag detection and 3D localization of target objects.
-\end{itemize}
-
-\subsection{Coordinate Frame Transformations}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.5\textwidth]{images/Ros2_env.jpeg}
-\caption{ROS2 TF visualization showing workspace boundaries and coordinate frames}
-\label{fig:ros_tf}
-\end{figure}
-
-The camera detects AprilTag markers and estimates their 3D positions in its local frame. To enable motion planning in the robot's coordinate system, we establish a fixed world coordinate system anchored to the reference tag with a vertical offset of 21.5cm to align with the robot's base frame. 
-
-\textbf{Importance of the reference tag.} This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. By fixing the world frame to a stationary physical marker, all measurements remain stable and repeatable—essential for precise manipulation tasks.
-
-The transformation chain (Figure \ref{fig:ros_tf}) follows the kinematic sequence:
-\begin{equation}
-\text{World} \rightarrow \text{Reference Tag} \rightarrow \text{Camera} \rightarrow \text{Target Tag}
-\end{equation}
-
-Mathematically expressed as:
-\begin{equation}
-T_{\text{base}}^{\text{tag}} = T_{\text{base}}^{\text{ref}} \cdot T_{\text{ref}}^{\text{cam}} \cdot T_{\text{cam}}^{\text{tag}}
-\end{equation}
-where:
-\begin{itemize}
-  \item $T_{\text{cam}}^{\text{tag}}$: camera frame → detected tag (vision-based detection)
-  \item $T_{\text{ref}}^{\text{cam}}$: reference tag → camera (calibrated once)
-  \item $T_{\text{base}}^{\text{ref}}$: robot base → reference tag (21.5cm vertical offset)
-\end{itemize}
-
-This chain allows any detected tag position to be expressed in the robot's base frame for motion planning.
+This chapter provides an overview of the complete system architecture before diving into implementation details. We first present the global software pipeline connecting all components, then describe the physical hardware setup, and finally explain the coordinate transformation framework that enables precise motion planning.
 
 \subsection{Global Software Pipeline}
 
@@ -110,8 +57,8 @@ Figure \ref{fig:global_pipeline} presents the complete data flow from the physic
     \node [steptext] at (residual.south) {4. Fusion};
 
     % --- ÉTAPE 5 : VALIDATION ---
-    \node [block, right=of residual, fill=red!10] (valid) {\textbf{Validation}\\Sim-to-Sim\\};
-    \node [steptext] at (valid.south) {5. Robustness Test};
+    \node [block, right=of residual, fill=red!10] (valid) {\textbf{Validation}\\Isaac Lab\\};
+    \node [steptext] at (valid.south) {5. Evaluation};
 
     % --- FLÈCHES DE CONNEXION ---
     \draw [line] (setup) -- node[above, font=\tiny, text=black] {Tag poses} (ros);
@@ -124,15 +71,65 @@ Figure \ref{fig:global_pipeline} presents the complete data flow from the physic
     \label{fig:global_pipeline}
 \end{figure}
 
-\textbf{Stage 1: Physical Setup.} The real UR10 robot equipped with camera and AprilTags provides tag pose measurements that serve as targets for motion planning.
+\textbf{Stage 1: Physical Setup.} The real UR10 robot equipped with camera and AprilTags provides tag pose measurements that serve as targets for motion planning (detailed in Section 2.2).
 
-\textbf{Stage 2: ROS 2 Planning.} MoveIt2 generates nominal trajectories ($q_{ref}$) between detected tag positions. These trajectories serve as reference motions that the RL policy will learn to improve through residual corrections.
+\textbf{Stage 2: ROS 2 Planning.} MoveIt2 generates nominal trajectories ($q_{ref}$) between detected tag positions using Cartesian path interpolation. These trajectories serve as reference motions that the RL policy will learn to improve through residual corrections (detailed in Chapter 3).
 
-\textbf{Stage 3: Isaac Lab Learning.} The dataset of reference trajectories is loaded into Isaac Lab where a PPO agent learns residual corrections in 4096 parallel simulation environments. Domain randomization introduces realistic perturbations to encourage robust policy learning.
+\textbf{Stage 3: Isaac Lab Learning.} The dataset of reference trajectories is loaded into Isaac Lab where a PPO agent learns residual corrections in 4096 parallel simulation environments. Domain randomization introduces realistic perturbations to encourage robust policy learning (detailed in Chapter 4).
 
 \textbf{Stage 4: Residual Control Fusion.} The learned policy produces residual actions ($a_{rl}$) that are added to the nominal actions ($a_{ref}$) to obtain the final control: $a_{tot} = a_{ref} + a_{rl}$. This additive structure ensures the policy starts from a safe baseline and only learns corrective adjustments.
 
-\textbf{Stage 5: Validation in Isaac Lab.} After training, we compare the performance of three approaches in Isaac Lab: (1) MoveIt baseline alone (no RL), (2) RL policy alone (no MoveIt), and (3) Residual control (MoveIt + RL). This comparison demonstrates the benefit of combining classical planning with learned corrections under realistic noise and calibration errors.
+\textbf{Stage 5: Validation in Isaac Lab.} After training, we compare the performance of three approaches: (1) MoveIt baseline alone (no RL), (2) RL policy alone (no MoveIt), and (3) Residual control (MoveIt + RL). This comparison demonstrates the benefit of combining classical planning with learned corrections under realistic noise and calibration errors (detailed in Chapter 5).
 
-\section{Isaac Lab Digital Twin}
-% To complete (~1.5 pages):
+\subsection{Hardware Setup}
+
+\begin{figure}[h]
+\centering
+\begin{overpic}[width=0.35\textwidth]{images/Robot_reel.jpg}
+  \put(21,52){\colorbox{white}{\textbf{\textcolor{red}{1}}}}
+  \put(26,26){\colorbox{white}{\textbf{\textcolor{blue}{2}}}}
+  \put(22,13){\colorbox{white}{\textbf{\textcolor{green!60!black}{3}}}}
+  \put(24,93){\colorbox{white}{\textbf{\textcolor{orange}{4}}}}
+\end{overpic}
+\caption{Real-world setup: (1) UR10 manipulator, (2) reference tag, (3) Workspace area, (4) Camera}
+\label{fig:real_setup}
+\end{figure}
+
+The physical system (Figure \ref{fig:real_setup}) corresponds to Stage 1 of the pipeline and consists of:
+\begin{itemize}
+  \item \textbf{UR10 manipulator (1):} 6 degrees of freedom industrial robot for trajectory following tasks.
+  \item \textbf{Reference tag (2):} AprilTag marker anchoring the world coordinate system to ensure stable and repeatable measurements across all experiments.
+  \item \textbf{Workspace (3):} Defined planar area with dimensions X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height. This constrained workspace simplifies the learning problem while remaining representative of real trajectory following scenarios.
+  \item \textbf{Camera (4):} Webcam mounted in an eye-to-hand configuration for AprilTag detection and 3D localization of target objects.
+\end{itemize}
+
+\subsection{Coordinate Frame Transformations}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{images/Ros2_env.jpeg}
+\caption{ROS2 TF visualization showing workspace boundaries and coordinate frames}
+\label{fig:ros_tf}
+\end{figure}
+
+The camera (4) detects AprilTag markers and estimates their 3D positions in its local frame. To enable motion planning in the robot's coordinate system, we establish a fixed world coordinate system anchored to the reference tag (2) with a vertical offset of 21.5cm to align with the robot's base frame. 
+
+\textbf{Importance of the reference tag (2).} This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. By fixing the world frame to a stationary physical marker, all measurements remain stable and repeatable—essential for precise manipulation tasks.
+
+The transformation chain (Figure \ref{fig:ros_tf}) follows the kinematic sequence:
+\begin{equation}
+\text{World} \rightarrow \text{Reference Tag} \rightarrow \text{Camera} \rightarrow \text{Target Tag}
+\end{equation}
+
+Mathematically expressed as:
+\begin{equation}
+T_{\text{base}}^{\text{tag}} = T_{\text{base}}^{\text{ref}} \cdot T_{\text{ref}}^{\text{cam}} \cdot T_{\text{cam}}^{\text{tag}}
+\end{equation}
+where:
+\begin{itemize}
+  \item $T_{\text{cam}}^{\text{tag}}$: camera frame → detected tag (vision-based detection)
+  \item $T_{\text{ref}}^{\text{cam}}$: reference tag → camera (calibrated once)
+  \item $T_{\text{base}}^{\text{ref}}$: robot base → reference tag (21.5cm vertical offset)
+\end{itemize}
+
+This chain allows any detected tag position to be expressed in the robot's base frame for motion planning.
