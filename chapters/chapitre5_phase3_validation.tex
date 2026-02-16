@@ -69,20 +69,4 @@ Although the results in Isaac Lab are promising, this validation remains a "Sim-
 The main risk is that the policy may have learned to exploit simulation-specific artifacts (numerical errors, simplified friction model) that do not exist in reality.
 To ensure true robustness before real-world deployment, it is crucial to test the policy in a physically different environment.
 
-\section{Perspective: Sim-to-Sim Validation (Isaac \texorpdfstring{$\rightarrow$}{->} MuJoCo)}
-To strengthen our validation, we exported the trained policy to a second simulator: MuJoCo.
 
-
-\subsection{Transfer Methodology}
-The transfer required converting the robot model:
-\begin{itemize}
-    \item Conversion from URDF format (used by ROS 2 and Isaac Lab) to MJCF format (specific to MuJoCo).
-    \item Verification of frame correspondence and joint limits.
-\end{itemize}
-
-\subsection{Robustness Tests}
-In MuJoCo, we subjected the agent to additional perturbations:
-\begin{itemize}
-    \item Addition of unknown masses on the end-effector (simulating a payload).
-    \item Introduction of more severe calibration errors than during training.
-\end{itemize}
