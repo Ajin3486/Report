@@ -1,0 +1,105 @@
+\section{Physical Setup and ROS2 Pipeline}
+
+\subsection{Hardware Components}
+
+\begin{figure}[h]
+\centering
+\begin{overpic}[width=0.35\textwidth]{images/Robot_reel.jpg}
+  \put(21,52){\colorbox{white}{\textbf{\textcolor{red}{1}}}}
+  \put(26,26){\colorbox{white}{\textbf{\textcolor{blue}{2}}}}
+  \put(22,13){\colorbox{white}{\textbf{\textcolor{green!60!black}{3}}}}
+  \put(24,93){\colorbox{white}{\textbf{\textcolor{orange}{4}}}}
+\end{overpic}
+\caption{Real-world setup: (1) UR10 manipulator, (2) reference tag, (3) Workspace area, (4) Camera}
+\label{fig:real_setup}
+\end{figure}
+
+The physical system (Figure \ref{fig:real_setup}) consists of:
+\begin{itemize}
+  \item \textbf{UR10 manipulator (1):} 6 degrees of freedom industrial robot
+  \item \textbf{Reference tag (2):} AprilTag marker anchoring the world coordinate system
+  \item \textbf{Workspace (3):} Defined area with dimensions X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height
+  \item \textbf{Camera (4):} Webcam for AprilTag detection and 3D localization
+\end{itemize}
+
+\subsection{Coordinate Frame Transformations}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{images/Ros2_env.jpeg}
+\caption{ROS2 TF visualization showing workspace boundaries and coordinate frames}
+\label{fig:ros_tf}
+\end{figure}
+
+The camera (4) detects AprilTag markers and estimates their 3D positions. To enable motion planning, we establish a fixed world coordinate system anchored to the reference tag (2) with a vertical offset of 21.5cm to align with the robot's base frame. This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. By fixing the world frame to a stationary physical marker, all measurements remain stable and repeatable—essential for precise manipulation tasks.
+
+The transformation chain (Figure \ref{fig:ros_tf}) is expressed mathematically as:
+\begin{equation}
+T_{\text{base}}^{\text{tag}} = T_{\text{base}}^{\text{ref}} \cdot T_{\text{ref}}^{\text{cam}} \cdot T_{\text{cam}}^{\text{tag}}
+\end{equation}
+where:
+\begin{itemize}
+  \item $T_{\text{cam}}^{\text{tag}}$: camera frame → detected tag
+  \item $T_{\text{ref}}^{\text{cam}}$: reference tag → camera
+  \item $T_{\text{base}}^{\text{ref}}$: robot base → reference tag (21.5cm offset)
+\end{itemize}
+
+This chain allows any detected tag position to be expressed in the robot's base frame for motion planning.
+
+\subsection{Motion Planning and Data Generation}
+
+\textbf{Planning pipeline.} MoveIt2 generates collision-free trajectories by computing inverse kinematics for start configurations, then planning smooth Cartesian paths that respect joint limits.
+
+\textbf{Training data: Random trajectories for generalization.} To ensure the neural network learns a general correction policy rather than memorizing specific paths, we generate a training dataset of 500 random straight-line trajectories covering the entire workspace. Each trajectory connects two random waypoints, resampled to 64 timesteps (5.33 seconds at 12Hz). This diversity forces the agent to learn robust corrections applicable to any position within the workspace, preventing overfitting to a single task.
+
+\textbf{Validation data: Tag-to-tag trajectories.} After training, we validate the learned policy using a separate script that generates trajectories between actual physical AprilTag positions detected by the camera. This represents the real deployment scenario where the robot must navigate between known markers in the environment. The distinction between random training data and task-specific validation data is critical: training on diverse examples enables generalization, while testing on realistic scenarios demonstrates practical applicability.
+
+\textbf{Model consistency.} Both ROS2 and Isaac Lab use identical robot models, ensuring centimeter-precise kinematic alignment—critical for successful sim-to-real transfer.
+
+\subsection{Data Pipeline: From ROS2 to Isaac Lab}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=4.5cm,
+  box/.style={rectangle, draw, thick, minimum width=2.5cm, minimum height=1.2cm, align=center, fill=white},
+  arrow/.style={->, thick, >=stealth}
+]
+
+% Nodes
+\node[box, fill=blue!10] (ros) {\textbf{ROS2/MoveIt}\\Trajectory\\Generation};
+\node[box, fill=yellow!20, right of=ros] (dataset) {\textbf{Dataset}\\(.npz file)};
+\node[box, fill=green!10, right of=dataset] (isaac) {\textbf{Isaac Lab}\\RL Training};
+
+% Arrows
+\draw[arrow] (ros) -- node[above, font=\small] {Export} (dataset);
+\draw[arrow] (dataset) -- node[above, font=\small] {Load} (isaac);
+
+% Annotations below
+\node[below=0.3cm of ros, font=\small, text width=2.5cm, align=center] {
+  Joint angles\\
+  EE positions\\
+  Workspace bounds
+};
+
+\node[below=0.3cm of dataset, font=\small, text width=2.5cm, align=center] {
+  N trajectories\\
+  64 waypoints each\\
+  @ 12 Hz
+};
+
+\node[below=0.3cm of isaac, font=\small, text width=2.5cm, align=center] {
+  4096 parallel envs\\
+  + Domain\\
+  randomization
+};
+
+\end{tikzpicture}
+\caption{Data flow from real-world trajectory generation (ROS2) to simulation training (Isaac Lab)}
+\label{fig:data_pipeline}
+\end{figure}
+
+The data pipeline connects the real-world setup with the simulation environment. ROS2/MoveIt generates safe, collision-free trajectories which are exported as a dataset containing joint angles, end-effector positions, and workspace constraints. This dataset is then loaded into Isaac Lab where the RL agent learns to follow these trajectories while being exposed to realistic perturbations through domain randomization.
+
+\section{Isaac Lab Digital Twin}
+% To complete (~1.5 pages):

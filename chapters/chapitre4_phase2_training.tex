@@ -1,6 +1,71 @@
 \section{Residual RL Training in Isaac Lab}
 
-This chapter describes the Isaac Lab simulation environment used for training the residual RL policy. We first explain the computational advantages of GPU-parallelization, then detail the synthetic perception modeling that bridges the sim-to-real gap, the PPO agent architecture, and finally the reward function design.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\textwidth]{images/train.png}
+    \caption{Massive parallelization of 4096 environments in Isaac Lab.}
+    \label{fig:isaac_lab_training}
+\end{figure}
+
+\section{Synthetic Perception \& Noise}
+To bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections are explicitly modeled in the simulator. 
+These perturbations affect both the agent's perception and the physical dynamics:
+
+\begin{figure}[htbp]
+    \centering
+    \tikzstyle{block} = [rectangle, draw, fill=blue!10, text width=3.5cm, text centered, rounded corners, minimum height=3.5em]
+    \tikzstyle{noise} = [rectangle, draw=red!80, fill=red!10, text width=3.5cm, text centered, dashed, minimum height=3.5em]
+    \tikzstyle{physics} = [rectangle, draw=green!80, fill=green!10, text width=4cm, text centered, minimum height=3.5em]
+    \tikzstyle{line} = [draw, -latex, thick]
+    
+    \begin{tikzpicture}[node distance = 2cm and 2.8cm, auto]
+        % --- Colonne Centrale : Action Flow ---
+        % 1. Agent
+        \node [block, fill=gray!20] (agent) {\textbf{Agent (Policy)}};
+        
+        % 2. Latency (En dessous)
+        \node [noise, below=of agent] (latency) {\textbf{Action Latency}};
+        
+        % 3. Physique (En dessous)
+        \node [physics, below=of latency] (sim) {\textbf{Physics Engine}\\ (Isaac Lab)};
+        
+        % --- Colonne Gauche : Perturbations Physiques ---
+        \node [noise, left=of sim] (dynamics) {\textbf{Dynamics Randomization}};
+        
+        % --- Colonne Droite : Perception ---
+        % 4. Camera (A droite du simu)
+        \node [block, right=of sim] (camera) {\textbf{Camera Model}};
+        
+        % 5. Bruit Visuel (Au dessus de la camera)
+        \node [noise, above=of camera] (cam_noise) {\textbf{Visual Noise}};
+        
+        % 6. Target Noise (Déplacé à GAUCHE de l'agent pour éviter la collision à droite)
+        \node [noise, left=of agent] (target_noise) {\textbf{Target Noise}};
+        
+        % --- Liens ---
+        % Agent -> Latency -> Sim
+        \path [line] (agent) -- (latency);
+        \path [line] (latency) -- node[right] {Action $a_t$} (sim);
+        
+        % Sim -> Camera
+        \path [line] (sim) -- node[below] {True State} (camera);
+        
+        % Camera -> Visual Noise
+        \path [line] (camera) -- (cam_noise);
+        
+        % Visual Noise -> Agent (Retour)
+        \path [line] (cam_noise) |- node[above, near start] {Noisy State} (agent);
+        
+        % Target Noise -> Agent (Connecté par la gauche)
+        \path [line] (target_noise) -- node[above] {Noisy Goal} (agent);
+        
+        % Dynamics -> Sim (Déplacé un peu plus bas ou ajusté car Target est maintenant à gauche)
+        \path [line, dashed] (dynamics) -- node[above] {Perturbations} (sim);
+        
+    \end{tikzpicture}
+    \caption{Simulation architecture including domain randomization and noise models.}
+    \label{fig:domain_randomization_scheme}
+\end{figure}
 
 \subsection{Simulation Environment}
 
@@ -75,13 +140,12 @@ r_t = \underbrace{\exp\left(-\frac{\|e_{pos}\|^2}{\sigma_{pos}^2}\right)}_{r_{tr
 
 \textbf{Component breakdown:}
 \begin{itemize}
-  \item $r_{tracking}$: Precision term rewarding proximity to the Cartesian target ($\sigma_{pos} = 0.02$ m). The exponential ensures smooth gradients even far from the goal.
-  
-  \item $p_{smoothness}$: Penalty on end-effector velocity ($\lambda_{v}=0.03$) to avoid jerky movements that could damage hardware or objects.
-  
-  \item $p_{stability}$: Penalty on end-effector acceleration ($\lambda_{a}=0.01$) to reduce vibrations and oscillations, encouraging smooth motion profiles.
-  
-  \item $r_{guide}$: Constant bonus ($+0.5$) awarded when position error is below 2 cm, incentivizing the agent to achieve and maintain high precision at trajectory endpoints.
+    \item \textbf{Precision Term}: Rewards proximity to the cartesian target ($\sigma_{pos} = 0.02$ m).
+    \item \textbf{Regularization Penalties}:
+    \begin{itemize}
+        \item End-effector velocity ($\lambda_{v}=0.03$) to avoid jerky movements.
+        \item End-effector acceleration ($\lambda_{a}=0.01$) to reduce vibrations (jitter).
+    \end{itemize}
+    \item \textbf{Bonus}: A constant bonus ($0.5$) is awarded if the error is below a critical threshold (2 cm), incentivizing the agent to maintain final precision.
 \end{itemize}
 
-This multi-objective reward balances task success (reaching targets accurately) with control quality (smooth, stable motions), resulting in policies suitable for real-world deployment.

@@ -1,6 +1,8 @@
-\section{Physical Setup and ROS2 Pipeline}
+\section{System Architecture}
 
-\subsection{Hardware Components}
+This chapter provides an overview of the complete system architecture before diving into implementation details. We first describe the physical hardware components, then explain the coordinate transformation framework that enables precise motion planning, and finally present the global software pipeline connecting all components from data generation to validation.
+
+\subsection{Hardware Setup}
 
 \begin{figure}[h]
 \centering
@@ -16,10 +18,10 @@
 
 The physical system (Figure \ref{fig:real_setup}) consists of:
 \begin{itemize}
-  \item \textbf{UR10 manipulator (1):} 6 degrees of freedom industrial robot
-  \item \textbf{Reference tag (2):} AprilTag marker anchoring the world coordinate system
-  \item \textbf{Workspace (3):} Defined area with dimensions X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height
-  \item \textbf{Camera (4):} Webcam for AprilTag detection and 3D localization
+  \item \textbf{UR10 manipulator (1):} 6 degrees of freedom industrial robot providing the manipulation capabilities for pick-and-place tasks.
+  \item \textbf{Reference tag (2):} AprilTag marker anchoring the world coordinate system to ensure stable and repeatable measurements across all experiments.
+  \item \textbf{Workspace (3):} Defined planar area with dimensions X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed height. This constrained workspace simplifies the learning problem while remaining representative of real pick-and-place scenarios.
+  \item \textbf{Camera (4):} Webcam mounted in an eye-to-hand configuration for AprilTag detection and 3D localization of target objects.
 \end{itemize}
 
 \subsection{Coordinate Frame Transformations}
@@ -31,75 +33,106 @@ The physical system (Figure \ref{fig:real_setup}) consists of:
 \label{fig:ros_tf}
 \end{figure}
 
-The camera (4) detects AprilTag markers and estimates their 3D positions. To enable motion planning, we establish a fixed world coordinate system anchored to the reference tag (2) with a vertical offset of 21.5cm to align with the robot's base frame. This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. By fixing the world frame to a stationary physical marker, all measurements remain stable and repeatable—essential for precise manipulation tasks.
+The camera detects AprilTag markers and estimates their 3D positions in its local frame. To enable motion planning in the robot's coordinate system, we establish a fixed world coordinate system anchored to the reference tag with a vertical offset of 21.5cm to align with the robot's base frame. 
 
-The transformation chain (Figure \ref{fig:ros_tf}) is expressed mathematically as:
+\textbf{Importance of the reference tag.} This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. By fixing the world frame to a stationary physical marker, all measurements remain stable and repeatable—essential for precise manipulation tasks.
+
+The transformation chain (Figure \ref{fig:ros_tf}) follows the kinematic sequence:
+\begin{equation}
+\text{World} \rightarrow \text{Reference Tag} \rightarrow \text{Camera} \rightarrow \text{Target Tag}
+\end{equation}
+
+Mathematically expressed as:
 \begin{equation}
 T_{\text{base}}^{\text{tag}} = T_{\text{base}}^{\text{ref}} \cdot T_{\text{ref}}^{\text{cam}} \cdot T_{\text{cam}}^{\text{tag}}
 \end{equation}
 where:
 \begin{itemize}
-  \item $T_{\text{cam}}^{\text{tag}}$: camera frame → detected tag
-  \item $T_{\text{ref}}^{\text{cam}}$: reference tag → camera
-  \item $T_{\text{base}}^{\text{ref}}$: robot base → reference tag (21.5cm offset)
+  \item $T_{\text{cam}}^{\text{tag}}$: camera frame → detected tag (vision-based detection)
+  \item $T_{\text{ref}}^{\text{cam}}$: reference tag → camera (calibrated once)
+  \item $T_{\text{base}}^{\text{ref}}$: robot base → reference tag (21.5cm vertical offset)
 \end{itemize}
 
 This chain allows any detected tag position to be expressed in the robot's base frame for motion planning.
 
-\subsection{Motion Planning and Data Generation}
+\subsection{Global Software Pipeline}
 
-\textbf{Planning pipeline.} MoveIt2 generates collision-free trajectories by computing inverse kinematics for start configurations, then planning smooth Cartesian paths that respect joint limits.
+Figure \ref{fig:global_pipeline} presents the complete data flow from the physical setup to validation. This pipeline consists of five key stages, each playing a specific role in the residual reinforcement learning approach.
 
-\textbf{Training data: Random trajectories for generalization.} To ensure the neural network learns a general correction policy rather than memorizing specific paths, we generate a training dataset of 500 random straight-line trajectories covering the entire workspace. Each trajectory connects two random waypoints, resampled to 64 timesteps (5.33 seconds at 12Hz). This diversity forces the agent to learn robust corrections applicable to any position within the workspace, preventing overfitting to a single task.
+\begin{figure}[htbp]
+    \centering
+    \hspace*{-1.2cm}
+    % Configuration du style des boîtes
+    \begin{tikzpicture}[
+        node distance=0.7cm and 1.1cm,
+        auto,
+        >=latex',
+        thick,
+        % Style des boîtes principales
+        block/.style={
+            rectangle, 
+            draw=black!55, 
+            fill=blue!5, 
+            text width=2.5cm, 
+            align=center, 
+            rounded corners, 
+            minimum height=3.5em,
+            drop shadow
+        },
+        % Style des boîtes de titre (étapes)
+        steptext/.style={
+            font=\bfseries\small, 
+            color=blue!60!black, 
+            below=0.1cm
+        },
+        % Style des flèches
+        line/.style={
+            ->, 
+            ultra thick, 
+            color=gray!70!black
+        }
+    ]
 
-\textbf{Validation data: Tag-to-tag trajectories.} After training, we validate the learned policy using a separate script that generates trajectories between actual physical AprilTag positions detected by the camera. This represents the real deployment scenario where the robot must navigate between known markers in the environment. The distinction between random training data and task-specific validation data is critical: training on diverse examples enables generalization, while testing on realistic scenarios demonstrates practical applicability.
+    % --- ÉTAPE 1 : MATÉRIEL ---
+    \node [block, fill=gray!10] (setup) {Real UR10\\Camera + Tags\\(Hardware)};
+    \node [steptext] at (setup.south) {1. Physical Setup};
 
-\textbf{Model consistency.} Both ROS2 and Isaac Lab use identical robot models, ensuring centimeter-precise kinematic alignment—critical for successful sim-to-real transfer.
+    % --- ÉTAPE 2 : ROS 2 ---
+    \node [block, right=of setup, fill=orange!10] (ros) {\textbf{ROS 2 / MoveIt}\\Trajectory\\Generation ($q_{ref}$)};
+    \node [steptext] at (ros.south) {2. Planning};
 
-\subsection{Data Pipeline: From ROS2 to Isaac Lab}
+    % --- ÉTAPE 3 : ISAAC LAB ---
+    \node [block, right=of ros, fill=green!10] (isaac) {\textbf{Isaac Lab}\\PPO Training\\};
+    \node [steptext] at (isaac.south) {3. Learning};
 
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[
-  node distance=4.5cm,
-  box/.style={rectangle, draw, thick, minimum width=2.5cm, minimum height=1.2cm, align=center, fill=white},
-  arrow/.style={->, thick, >=stealth}
-]
+    % --- ÉTAPE 4 : RÉSIDUEL ---
+    \node [block, right=of isaac, fill=purple!10] (residual) {\textbf{Residual Control}\\$a_{tot} = a_{ref} + a_{rl}$\\Correction};
+    \node [steptext] at (residual.south) {4. Fusion};
 
-% Nodes
-\node[box, fill=blue!10] (ros) {\textbf{ROS2/MoveIt}\\Trajectory\\Generation};
-\node[box, fill=yellow!20, right of=ros] (dataset) {\textbf{Dataset}\\(.npz file)};
-\node[box, fill=green!10, right of=dataset] (isaac) {\textbf{Isaac Lab}\\RL Training};
+    % --- ÉTAPE 5 : VALIDATION ---
+    \node [block, right=of residual, fill=red!10] (valid) {\textbf{Validation}\\Sim-to-Sim\\};
+    \node [steptext] at (valid.south) {5. Robustness Test};
 
-% Arrows
-\draw[arrow] (ros) -- node[above, font=\small] {Export} (dataset);
-\draw[arrow] (dataset) -- node[above, font=\small] {Load} (isaac);
+    % --- FLÈCHES DE CONNEXION ---
+    \draw [line] (setup) -- node[above, font=\tiny, text=black] {Tag poses} (ros);
+    \draw [line] (ros) -- node[above, font=\tiny, align=center, text=black] {Dataset\\(.npz)} (isaac);
+    \draw [line] (isaac) -- node[above, font=\tiny, text=black] {Policy $\pi$} (residual);
+    \draw [line] (residual) -- node[above, font=\tiny, text=black] {Actions} (valid);
 
-% Annotations below
-\node[below=0.3cm of ros, font=\small, text width=2.5cm, align=center] {
-  Joint angles\\
-  EE positions\\
-  Workspace bounds
-};
-
-\node[below=0.3cm of dataset, font=\small, text width=2.5cm, align=center] {
-  N trajectories\\
-  64 waypoints each\\
-  @ 12 Hz
-};
-
-\node[below=0.3cm of isaac, font=\small, text width=2.5cm, align=center] {
-  4096 parallel envs\\
-  + Domain\\
-  randomization
-};
-
-\end{tikzpicture}
-\caption{Data flow from real-world trajectory generation (ROS2) to simulation training (Isaac Lab)}
-\label{fig:data_pipeline}
+    \end{tikzpicture}
+    \caption{Global project pipeline from physical setup to validation.}
+    \label{fig:global_pipeline}
 \end{figure}
 
-The data pipeline connects the real-world setup with the simulation environment. ROS2/MoveIt generates safe, collision-free trajectories which are exported as a dataset containing joint angles, end-effector positions, and workspace constraints. This dataset is then loaded into Isaac Lab where the RL agent learns to follow these trajectories while being exposed to realistic perturbations through domain randomization.
+\textbf{Stage 1: Physical Setup.} The real UR10 robot equipped with camera and AprilTags provides tag pose measurements that serve as targets for motion planning.
+
+\textbf{Stage 2: ROS 2 Planning.} MoveIt2 generates nominal trajectories ($q_{ref}$) between detected tag positions. These trajectories serve as reference motions that the RL policy will learn to improve through residual corrections.
+
+\textbf{Stage 3: Isaac Lab Learning.} The dataset of reference trajectories is loaded into Isaac Lab where a PPO agent learns residual corrections in 4096 parallel simulation environments. Domain randomization introduces realistic perturbations to encourage robust policy learning.
+
+\textbf{Stage 4: Residual Control Fusion.} The learned policy produces residual actions ($a_{rl}$) that are added to the nominal actions ($a_{ref}$) to obtain the final control: $a_{tot} = a_{ref} + a_{rl}$. This additive structure ensures the policy starts from a safe baseline and only learns corrective adjustments.
+
+\textbf{Stage 5: Validation in Isaac Lab.} After training, we compare the performance of three approaches in Isaac Lab: (1) MoveIt baseline alone (no RL), (2) RL policy alone (no MoveIt), and (3) Residual control (MoveIt + RL). This comparison demonstrates the benefit of combining classical planning with learned corrections under realistic noise and calibration errors.
 
 \section{Isaac Lab Digital Twin}
 % To complete (~1.5 pages):

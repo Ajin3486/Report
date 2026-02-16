@@ -1,14 +1,24 @@
-\section{Objectif}
-Créer un "manuel scolaire" de trajectoires parfaites pour l'IA.
+\section{Trajectory Generation}
 
-\section{Stratégie Planare}
-Pourquoi forcer le mouvement en 2D pour éviter l'ambiguïté de profondeur des caméras.
+This chapter describes how we generate training and validation trajectories using MoveIt2's Cartesian path planning capabilities. We first explain the technical approach for generating straight-line trajectories, then detail the distinction between training and validation datasets.
 
-\section{Utilisation de MoveIt}
-\subsection{Interpolation cartésienne}
-Pour des droites parfaites.
-\subsection{Randomisation}
-Randomisation des points de départ et d'arrivée dans le cube défini (Workspace).
+\subsection{Cartesian Path Planning with MoveIt2}
 
-\section{Exportation}
-Format .npz pour le transfert vers Isaac Lab.
+\textbf{Cartesian interpolation for perfect straight lines.} We use MoveIt2's \texttt{compute\_cartesian\_path} service to generate all trajectories. This choice is deliberate and differs fundamentally from sampling-based planners like RRT (Rapidly-exploring Random Trees):
+
+\begin{itemize}
+  \item \textbf{RRT/RRTConnect:} Sampling-based motion planning that explores the configuration space randomly to find collision-free paths. While robust for complex environments with obstacles, RRT produces curved, non-intuitive paths in joint space that vary between runs.
+  
+  \item \textbf{compute\_cartesian\_path:} Direct linear interpolation in Cartesian workspace coordinates (X, Y, Z) followed by inverse kinematics at each waypoint. This produces perfectly straight lines in task space—exactly what we need for interpretable learning and consistent training data.
+\end{itemize}
+
+By using Cartesian interpolation, we ensure that all trajectories follow intuitive straight-line motions in workspace coordinates, making the learning problem more tractable and the resulting policy more interpretable.
+
+\subsection{Training vs Validation Data}
+
+\textbf{Training data: Random trajectories for generalization.} To ensure the neural network learns a general correction policy rather than memorizing specific paths, we generate a training dataset of 500 random straight-line trajectories covering the entire workspace. Each trajectory connects two random waypoints within the bounds (X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed), resampled to 64 timesteps (5.33 seconds at 12Hz). This diversity forces the agent to learn robust corrections applicable to any position within the workspace, preventing overfitting to a single task.
+
+\textbf{Validation data: Tag-to-tag trajectories.} After training, we validate the learned policy using a separate script that generates trajectories between actual physical AprilTag positions detected by the camera. This represents the real deployment scenario where the robot must navigate between known markers in the environment. These validation trajectories were never seen during training, ensuring an unbiased evaluation of generalization capability.
+
+\textbf{Why this distinction matters.} Training on diverse random examples enables the policy to learn general correction strategies, while testing on realistic task-specific scenarios demonstrates practical applicability. This separation is critical: it prevents the agent from simply memorizing training examples and forces it to develop transferable skills.
+
