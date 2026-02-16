@@ -159,10 +159,58 @@ We evaluated the learning process by monitoring the average reward per episode.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/learning_curve.png}
+    \includegraphics[width=0.9\textwidth]{images/learning_curve.png}
     \caption{Learning curves: average reward per episode during training.}
     \label{fig:learning_curve}
 \end{figure}
 
-The results show rapid and stable convergence. Figure~\ref{fig:learning_curve} illustrates the training progress. The reward curve demonstrates stable convergence without instabilities, indicating efficient learning of the correction policy.
+The results show rapid and stable convergence. Figure~\ref{fig:learning_curve} illustrates the training progress, which can be analyzed in three distinct phases:
+
+\begin{enumerate}
+    \item \textbf{Exploration Phase (Initial Steps):} In the early stage of training, the agent explores the action space with high entropy. The reward is low and variance is high as the policy has not yet learned to compensate for the systematic errors (calibration and noise).
+    
+    \item \textbf{Rapid Improvement Phase:} As the PPO algorithm updates the policy, the agent quickly identifies that minimizing the distance to the target yields the highest reward. The curve shows a steep ascent, indicating that the residual corrections are effectively reducing the tracking error.
+    
+    \item \textbf{Convergence and Fine-tuning:} In the final stage, the curve plateaus. The agent has learned a robust policy and is now fine-tuning its actions to maximize the secondary reward components (smoothness and stability). The stability of this plateau confirms that the policy has converged to an optimal solution without catastrophic forgetting.
+\end{enumerate}
+
+This efficient learning process demonstrates the effectiveness of the residual formulation: since the agent only needs to learn small corrections around a valid base trajectory, the problem is much simpler than learning full control from scratch.
+
+\subsubsection{Analysis of individual reward components}
+To better understand the agent's behavior, we analyze the evolution of specific reward terms during training (as shown in the subplots of Figure~\ref{fig:learning_curve}):
+
+\begin{itemize}
+    \item \textbf{Policy Loss (policy\_loss):} This metric starts high and decreases, reflecting the optimization of the actor network. The fluctuations indicate the continuous adjustment of the policy to find better actions.
+    
+    \item \textbf{Value Loss (value\_loss):} The value function estimator (Critic) rapidly reduces its prediction error. A low stable value loss means the Critic accurately predicts the expected return of the current state, which is crucial for stable PPO training.
+    
+    \item \textbf{Entropy (entropy):} The entropy curve shows a gradual decrease. Initially high, it encourages exploration of random actions. As training progresses, the agent becomes more confident in its optimal strategy, and the distribution of actions narrows (less randomness).
+    
+    \item \textbf{Kl Divergence (kl\_div):} This metric monitors the difference between the old and new policy after each update. It remains bounded within a small range, confirming that the PPO clipping mechanism effectively prevents destructive large updates that could collapse the policy.
+    
+    \item \textbf{Clip Fraction (clip\_frac):} This indicates how often the policy update was "clipped" by PPO constraints. A moderate value suggests that the algorithm is aggressively trying to improve the policy while being constrained to safe update steps.
+\end{itemize}
+
+\subsubsection{Episode Length Analysis}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/meanreward.png}
+    \caption{Mean episode length and standard deviation during training.}
+    \label{fig:episode_length}
+\end{figure}
+
+Figure~\ref{fig:episode_length} shows the evolution of episode length during training. The mean episode length rapidly increases from approximately 25 steps to around 65 steps and stabilizes at this level. This metric provides crucial insight into the agent's task completion efficiency:
+
+\begin{itemize}
+    \item \textbf{Initial Phase (0-1000 iterations):} Episodes are very short because the agent frequently fails to reach the target or violates workspace constraints, triggering early termination. The low episode length reflects poor performance.
+    
+    \item \textbf{Learning Phase (1000-4000 iterations):} The sharp increase in episode length indicates that the agent is learning to maintain tracking and successfully complete longer trajectory segments without failure.
+    
+    \item \textbf{Mature Policy (>4000 iterations):} The stable plateau at 65 steps shows that the agent consistently completes full episodes. The maximum episode length is capped at 64 steps by design (trajectory duration), meaning the policy achieves near-perfect success rate in following the entire reference trajectory.
+    
+    \item \textbf{Low Standard Deviation:} The very small variance in episode length (shown in the right subplot) confirms the policy's reliability and consistency across different trajectory scenarios.
+\end{itemize}
+
+This metric complements the reward curve by quantifying task completion: a high reward could theoretically be achieved on short episodes, but high episode length with high reward proves that the agent successfully tracks entire trajectories.
 

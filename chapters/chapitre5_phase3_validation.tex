@@ -14,14 +14,27 @@ Before presenting the quantitative results, we distinguish the two control strat
 
 The achieved success rate exceeds 95\% on a test set comprising random trajectories with perception noise and simulated calibration error. This validates that the agent has successfully learned to correct the trajectories from the MoveIt planner.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/table_summary.png}
-    \caption{Performance summary comparing open-loop and closed-loop RL approaches. The RL policy achieves 69.7\% improvement in mean error, 55.6\% in max error, and 71.4\% in standard deviation.}
-    \label{fig:performance_summary}
-\end{figure}
+\begin{table}[htbp]
+\centering
+\caption{Comparaison des métriques de performance entre les approches Open-Loop et Closed-Loop RL.}
+\label{tab:performance}
 
-Figure~\ref{fig:performance_summary} presents quantitative metrics comparing open-loop and closed-loop RL approaches:
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metric} & \textbf{Open-Loop} & \textbf{Closed-Loop RL} & \textbf{Improvement} \\
+\midrule
+Mean error (mm) & 28.37 & 8.58 & \textbf{69.7\%} \\
+Max error (mm) & 52.03 & 23.08 & \textbf{55.6\%} \\
+Std error (mm) & 15.36 & 4.39 & \textbf{71.4\%} \\
+\midrule
+Avg speed (mm/s) & -- & 187.9 & -- \\
+Max speed (mm/s) & -- & 587.5 & -- \\
+\bottomrule
+\end{tabular}
+
+\end{table}
+
+Table~\ref{tab:performance} presents quantitative metrics comparing open-loop and closed-loop RL approaches:
 \begin{itemize}
     \item \textbf{Mean error}: 28.37mm $\rightarrow$ 8.58mm (69.7\% improvement)
     \item \textbf{Max error}: 52.03mm $\rightarrow$ 23.08mm (55.6\% improvement)
@@ -59,7 +72,7 @@ Figure~\ref{fig:joint_j4} reveals the RL correction strategy at joint level for 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{images/fig3_ee_speed.png}
+    \includegraphics[width=0.7\textwidth]{images/fig3_ee_speed.png}
     \caption{End-effector speed during trajectory execution. Average speed: 187.9 mm/s, maximum speed: 587.5 mm/s.}
     \label{fig:ee_speed}
 \end{figure}
