@@ -1,14 +1,16 @@
 \section{Validation in Isaac Lab }
-We first evaluated the learned policy directly in the Isaac Lab training environment, but on scenarios never seen during training. The results show rapid and stable convergence.
+To assess the performance of our residual reinforcement learning approach, we first evaluated the learned policy directly in the Isaac Lab 
+training environment. This controlled simulation setting allows us to precisely measure the improvement brought by the AI agent compared to
+ a Open-Loop controller under localized perturbations.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{images/learning_curve.png}
-    \caption{Learning curves: average reward per episode during training.}
-    \label{fig:learning_curve}
-\end{figure}
+\subsection{Experimental Control Modes: Open-Loop vs. AI Closed-Loop}
+Before presenting the quantitative results, we distinguish the two control strategies evaluated in this validation phase:
 
-Figure~\ref{fig:learning_curve} illustrates the training progress. The reward curve demonstrates stable convergence without instabilities, indicating efficient learning of the correction policy.
+\begin{itemize}
+    \item \textbf{Open-Loop (Baseline):} The robot executes the trajectory theoretically planned by MoveIt. In a perfect simulation, this would be accurate. However, in our "Sim-to-Real" validation scenarios, we introduce calibration errors (offset between the camera and the robot base) and sensor noise. In open-loop, the robot blindly follows the plan without correcting for these discrepancies, leading to significant end-effector errors.
+    
+    \item \textbf{Closed-Loop RL (AI):} This is the proposed residual learning approach. The AI agent acts as a high-frequency feedback controller (60Hz). It continuously monitors the \textit{observed} state (proprioception + noisy vision) and the tracking error. Unlike the baseline, the AI "closes the loop" by injecting real-time joint corrections ($\Delta q$) to minimize the distance to the perceived target. This allows it to dynamically compensate for the static calibration errors and filter out high-frequency sensor noise.
+\end{itemize}
 
 The achieved success rate exceeds 95\% on a test set comprising random trajectories with perception noise and simulated calibration error. This validates that the agent has successfully learned to correct the trajectories from the MoveIt planner.
 
@@ -69,20 +71,7 @@ Although the results in Isaac Lab are promising, this validation remains a "Sim-
 The main risk is that the policy may have learned to exploit simulation-specific artifacts (numerical errors, simplified friction model) that do not exist in reality.
 To ensure true robustness before real-world deployment, it is crucial to test the policy in a physically different environment.
 
-\section{Perspective: Sim-to-Sim Validation (Isaac \texorpdfstring{$\rightarrow$}{->} MuJoCo)}
-To strengthen our validation, we exported the trained policy to a second simulator: MuJoCo.
 
 
-\subsection{Transfer Methodology}
-The transfer required converting the robot model:
-\begin{itemize}
-    \item Conversion from URDF format (used by ROS 2 and Isaac Lab) to MJCF format (specific to MuJoCo).
-    \item Verification of frame correspondence and joint limits.
-\end{itemize}
 
-\subsection{Robustness Tests}
-In MuJoCo, we subjected the agent to additional perturbations:
-\begin{itemize}
-    \item Addition of unknown masses on the end-effector (simulating a payload).
-    \item Introduction of more severe calibration errors than during training.
-\end{itemize}
+
