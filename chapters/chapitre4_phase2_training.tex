@@ -11,6 +11,17 @@
 To bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections are explicitly modeled in the simulator. 
 These perturbations affect both the agent's perception and the physical dynamics:
 
+
+
+\subsection{Simulation Environment}
+
+\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. In our configuration, we instantiate \textbf{4096 simultaneous environments} running in parallel. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions.
+
+
+\textbf{ROS 2 dataset as reference trajectories.} The dataset of 500 trajectories generated with MoveIt2 (Chapter 3) is loaded into Isaac Lab and serves as the nominal reference behavior. During each training episode, a random trajectory from this dataset is sampled, providing the reference joint positions $q_{ref}(t)$ that the agent will learn to improve through residual corrections. This approach ensures the policy learns to enhance an already safe baseline rather than learning control from scratch.
+
+\subsection{Synthetic Perception \& Reality Gap Modeling}
+
 \begin{figure}[htbp]
     \centering
     \tikzstyle{block} = [rectangle, draw, fill=blue!10, text width=3.5cm, text centered, rounded corners, minimum height=3.5em]
@@ -66,21 +77,6 @@ These perturbations affect both the agent's perception and the physical dynamics
     \caption{Simulation architecture including domain randomization and noise models.}
     \label{fig:domain_randomization_scheme}
 \end{figure}
-
-\subsection{Simulation Environment}
-
-\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. In our configuration, we instantiate \textbf{4096 simultaneous environments} running in parallel. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.8\textwidth]{images/prallele_training.png}
-\caption{Isaac Lab training with 100 parallel robot environments}
-\label{fig:isaac_parallel}
-\end{figure}
-
-\textbf{ROS 2 dataset as reference trajectories.} The dataset of 500 trajectories generated with MoveIt2 (Chapter 3) is loaded into Isaac Lab and serves as the nominal reference behavior. During each training episode, a random trajectory from this dataset is sampled, providing the reference joint positions $q_{ref}(t)$ that the agent will learn to improve through residual corrections. This approach ensures the policy learns to enhance an already safe baseline rather than learning control from scratch.
-
-\subsection{Synthetic Perception \& Reality Gap Modeling}
 
 To bridge the sim-to-real gap, we explicitly model real-world imperfections in the simulator. Rather than rendering camera images (which would be computationally expensive), we use a mathematical camera model with injected noise:
 

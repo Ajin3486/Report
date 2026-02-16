@@ -1,37 +1,88 @@
-\section{Validation Isaac Lab \texorpdfstring{$\rightarrow$}{->} Isaac Sim}
-Nous avons d'abord évalué la politique apprise directement dans l'environnement d'entraînement Isaac Lab, mais sur des scénarios jamais vus durant l'entraînement. Les résultats montrent une convergence rapide et stable.
+\section{Validation in Isaac Lab }
+We first evaluated the learned policy directly in the Isaac Lab training environment, but on scenarios never seen during training. The results show rapid and stable convergence.
 
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=0.8\textwidth]{images/learning_curve.png} % À remplacer par votre courbe
-    \caption{Courbes d'apprentissage : récompense moyenne par épisode (Placeholder).}
+    \includegraphics[width=0.8\textwidth]{images/learning_curve.png}
+    \caption{Learning curves: average reward per episode during training.}
     \label{fig:learning_curve}
 \end{figure}
 
-Le taux de succès atteint dépasse les 95\% sur un ensemble de test comprenant des trajectoires aléatoires avec bruit de perception et erreur de calibration simulée. Cela valide que l'agent a bien appris à corriger les trajectoires du planificateur MoveIt.
+Figure~\ref{fig:learning_curve} illustrates the training progress. The reward curve demonstrates stable convergence without instabilities, indicating efficient learning of the correction policy.
 
-\section{Limites de cette validation}
-Bien que les résultats dans Isaac Lab soient prometteurs, cette validation reste une évaluation "Sim-to-Sim" au sein du même moteur physique (PhysX). 
-Le principal risque est que la politique ait appris à exploiter des artefacts spécifiques à la simulation (erreurs numériques, modèle de friction simplifié) qui n'existent pas dans la réalité.
-Pour garantir une véritable robustesse avant le déploiement réel, il est crucial de tester la politique dans un environnement physiquement différent.
+The achieved success rate exceeds 95\% on a test set comprising random trajectories with perception noise and simulated calibration error. This validates that the agent has successfully learned to correct the trajectories from the MoveIt planner.
 
-\section{Ouverture : Validation Sim-to-Sim (Isaac \texorpdfstring{$\rightarrow$}{->} MuJoCo)}
-Pour renforcer notre validation, nous avons exporté la politique entraînée vers un second simulateur : MuJoCo.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/table_summary.png}
+    \caption{Performance summary comparing open-loop and closed-loop RL approaches. The RL policy achieves 69.7\% improvement in mean error, 55.6\% in max error, and 71.4\% in standard deviation.}
+    \label{fig:performance_summary}
+\end{figure}
 
-\subsection{Pourquoi MuJoCo ?}
-MuJoCo utilise un solveur de dynamique différent de celui d'Isaac Lab (coordonnées généralisées vs coordonnées maximales/réduites de PhysX) et un modèle de contact distinct. 
-Si la politique fonctionne dans MuJoCo sans réentraînement, cela démontre une grande capacité de généralisation et suggère une bonne transférabilité vers le robot réel.
-
-\subsection{Méthodologie de transfert}
-Le transfert a nécessité la conversion du modèle du robot :
+Figure~\ref{fig:performance_summary} presents quantitative metrics comparing open-loop and closed-loop RL approaches:
 \begin{itemize}
-    \item Conversion du format URDF (utilisé par ROS 2 et Isaac Lab) vers le format MJCF (spécifique à MuJoCo).
-    \item Vérification de la correspondance des repères et des limites articulaires.
+    \item \textbf{Mean error}: 28.37mm $\rightarrow$ 8.58mm (69.7\% improvement)
+    \item \textbf{Max error}: 52.03mm $\rightarrow$ 23.08mm (55.6\% improvement)
+    \item \textbf{Standard deviation}: 15.36mm $\rightarrow$ 4.39mm (71.4\% improvement)
+    \item \textbf{Speed}: Average 187.9 mm/s, peak 587.5 mm/s
+\end{itemize}
+All error metrics show $>$50\% improvement, confirming the effectiveness of the RL correction approach.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/fig1_error_comparison.png}
+    \caption{Tracking accuracy comparison: Open-Loop vs Closed-Loop RL. The red curve shows the open-loop position error (mean=28.4mm, max=52.0mm), while the green curve demonstrates the closed-loop RL correction (mean=8.6mm, max=23.1mm), representing a 70\% improvement.}
+    \label{fig:error_comparison}
+\end{figure}
+
+Figure~\ref{fig:error_comparison} shows the position error norm over time. The red curve (open-loop) exhibits mean error of 28.4mm with peaks exceeding 52mm, particularly during rapid direction changes at t=1.0s and t=3.8s. The green curve (closed-loop RL) maintains mean error of 8.6mm with maximum error below 23mm, representing a 70\% improvement. The RL agent anticipates errors and attenuates disturbances without introducing oscillations.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/fig2_ee_position_x.png}
+    \caption{Trajectory tracking on X-axis. The blue dashed line represents the desired trajectory, the orange dotted line shows the observed trajectory with noise, and the green solid line indicates the actual trajectory executed by the RL agent.}
+    \label{fig:trajectory_x}
+\end{figure}
+
+Figure~\ref{fig:trajectory_x} shows end-effector position along the X-axis. The blue dashed line represents the ideal reference trajectory, the orange dotted line shows noisy observations with sensor noise and calibration errors, and the green solid line indicates the actual executed trajectory. The RL agent tracks the reference with 5.3mm average error on X-axis, demonstrating robustness to observation noise by filtering rather than blindly following noisy measurements.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/fig4_joint_j4_strategy.png}
+    \caption{Joint J4 (wrist\_1) position comparison. Top: open-loop tracking shows deviation from reference. Bottom: closed-loop RL applies a bias of +0.63° on J4 to improve end-effector accuracy.}
+    \label{fig:joint_j4}
+\end{figure}
+
+Figure~\ref{fig:joint_j4} reveals the RL correction strategy at joint level for J4 (wrist\_1). Top panel: open-loop tracking follows the reference perfectly but leads to end-effector errors. Bottom panel: the RL policy systematically applies a +0.63\textdegree\ bias to J4. The gap between the reference (blue dashed) and RL-corrected target (orange dotted) shows this proactive compensation. This consistent bias compensates for systematic errors (gravity, friction, calibration) and exploits kinematic redundancy to improve end-effector accuracy without compromising motion quality.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/fig3_ee_speed.png}
+    \caption{End-effector speed during trajectory execution. Average speed: 187.9 mm/s, maximum speed: 587.5 mm/s.}
+    \label{fig:ee_speed}
+\end{figure}
+
+Figure~\ref{fig:ee_speed} shows the end-effector velocity profile with average speed of 187.9 mm/s and peak of 587.5 mm/s at t=2.0s. The smooth profile without high-frequency oscillations indicates stable control. The velocity modulation demonstrates an emergent speed-accuracy trade-off learned during training, where the agent adaptively adjusts speed based on trajectory requirements while maintaining safety limits.
+
+\section{Limitations of this validation}
+Although the results in Isaac Lab are promising, this validation remains a "Sim-to-Sim" evaluation within the same physics engine (PhysX). 
+The main risk is that the policy may have learned to exploit simulation-specific artifacts (numerical errors, simplified friction model) that do not exist in reality.
+To ensure true robustness before real-world deployment, it is crucial to test the policy in a physically different environment.
+
+\section{Perspective: Sim-to-Sim Validation (Isaac \texorpdfstring{$\rightarrow$}{->} MuJoCo)}
+To strengthen our validation, we exported the trained policy to a second simulator: MuJoCo.
+
+
+\subsection{Transfer Methodology}
+The transfer required converting the robot model:
+\begin{itemize}
+    \item Conversion from URDF format (used by ROS 2 and Isaac Lab) to MJCF format (specific to MuJoCo).
+    \item Verification of frame correspondence and joint limits.
 \end{itemize}
 
-\subsection{Tests de robustesse}
-Dans MuJoCo, nous avons soumis l'agent à des perturbations supplémentaires :
+\subsection{Robustness Tests}
+In MuJoCo, we subjected the agent to additional perturbations:
 \begin{itemize}
-    \item Ajout de masses inconnues sur l'effecteur (simulant une charge utile).
-    \item Introduction d'erreurs de calibration plus sévères que lors de l'entraînement.
+    \item Addition of unknown masses on the end-effector (simulating a payload).
+    \item Introduction of more severe calibration errors than during training.
 \end{itemize}
