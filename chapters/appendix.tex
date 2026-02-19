@@ -1,10 +1,7 @@
 \chapter{Detailed Experimental Settings}
 \label{appendix:experimental_settings}
 
-This appendix provides the specific hyperparameters used for the PPO training and the exact domain randomization ranges, ensuring reproducibility of the results presented in this work.
-
-\section{PPO Hyperparameters}
-Table \ref{tab:ppo_params} lists the hyperparameters used for the Proximal Policy Optimization (PPO) algorithm in Isaac Lab. These values were selected based on standard baselines for continuous control tasks.
+\section{PPO Hyperparameters \& Reward Function}
 
 \begin{table}[h]
 \centering
@@ -32,22 +29,17 @@ Max Iterations & 150 \\
 \end{tabular}
 \end{table}
 
-\section{Reward Function Formulation}
-The total reward $r_t$ at timestep $t$ is computed as:
+The total reward is: $r = r_{\text{track}} + r_{\text{guide}} - p_{\text{action}} - p_{\text{smooth}}$, where $r_{\text{track}} = 5.0 \cdot e^{-\|e_{\text{pos}}\|^2/0.02}$, $r_{\text{guide}} = 1.0 \cdot e^{-\|e_q\|^2/0.05}$, $p_{\text{action}} = 0.01\|\mathbf{a}\|^2$, and $p_{\text{smooth}} = 0.1\|\Delta\mathbf{a}\|^2$.
 
-\begin{equation}
-r_t = r_{\text{track}} + r_{\text{smooth}} + r_{\text{bonus}}
-\end{equation}
+\noindent\textbf{Source Code:} \url{https://github.com/Lucavogel/sim2real-pnp}
 
-Where:
-\begin{itemize}
-    \item \textbf{Tracking Reward:} $r_{\text{track}} = 5.0 \times \exp(-\|e_{\text{pos}}\|^2 / 0.02)$
-    \item \textbf{Guidance Reward:} $r_{\text{guide}} = 1.0 \times \exp(-\|e_q\|^2 / 0.05)$
-    \item \textbf{Action Penalty:} $p_{\text{action}} = 0.01 \times \|a\|^2$
-    \item \textbf{Smoothness Penalty:} $p_{\text{smooth}} = 0.1 \times \|\Delta a\|^2$
-\end{itemize}
+\section{Source Code Repository}
+The full source code, training scripts, ROS 2 packages, and experimental data for this project are publicly available at:
+\begin{center}
+    \url{https://github.com/Lucavogel/sim2real-pnp}
+\end{center}
+The repository includes the Isaac Lab training environment, the ROS 2/MoveIt integration, the PPO policy checkpoints, and the dataset generation scripts.
 
-Total reward: $r = r_{\text{track}} + r_{\text{guide}} - p_{\text{action}} - p_{\text{smooth}}$
 
 \section{Training Duration}
 The PPO training run used for the reported results lasted approximately 10 hours.

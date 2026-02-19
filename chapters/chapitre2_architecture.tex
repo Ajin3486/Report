@@ -84,7 +84,7 @@ Figure \ref{fig:global_pipeline} presents the complete data flow from the physic
 
 \begin{figure}[h]
 \centering
-\begin{overpic}[width=0.35\textwidth]{images/Robot_reel.jpg}
+\begin{overpic}[width=0.30\textwidth]{images/Robot_reel.jpg}
   \put(21,52){\colorbox{white}{\textbf{\textcolor{red}{1}}}}
   \put(26,26){\colorbox{white}{\textbf{\textcolor{blue}{2}}}}
   \put(22,13){\colorbox{white}{\textbf{\textcolor{green!60!black}{3}}}}
@@ -112,7 +112,17 @@ To ensure accurate control and enable seamless sim-to-real transfer, the kinemat
 
 \textbf{AprilTag markers.} Four fiducial markers from the 36h11 family (10cm $\times$ 10cm, IDs 0--3) are used for localization. Tag ID 1, labeled as (2) in Figure \ref{fig:real_setup}, serves as the reference anchor frame.
 
-\textbf{Intrinsic parameters.} Camera intrinsics were calibrated using a checkerboard pattern, yielding focal lengths $f_x=507.71$, $f_y=507.01$, principal point $(c_x, c_y)=(318.97, 237.61)$, and plumb\_bob distortion coefficients $(k_1, k_2, p_1, p_2, k_3) = (0.149, -0.675, -0.002, -0.001, 1.382)$.
+\textbf{Intrinsic parameters.} Camera intrinsics were calibrated using a checkerboard pattern, yielding the following calibration matrix $K$ and distortion coefficients $D$ (plumb\_bob model):
+
+\begin{equation}
+K = \begin{bmatrix} 
+507.71 & 0 & 318.97 \\ 
+0 & 507.01 & 237.61 \\ 
+0 & 0 & 1 
+\end{bmatrix}, \quad 
+D = \begin{bmatrix} 0.149 \\ -0.675 \\ -0.002 \\ -0.001 \\ 1.382 \end{bmatrix}
+\end{equation}
+where $D=[k_1, k_2, p_1, p_2, k_3]^T$ represents the radial ($k_1, k_2, k_3$) and tangential ($p_1, p_2$) distortion coefficients used to rectify the raw camera images before marker detection.
 
 \textbf{Extrinsic calibration and coordinate frames.} To enable motion planning in the robot's coordinate system, we must establish a common reference frame between the perception system (camera (4)) and the actuation system (robot (1)). We achieve this by using the reference fiducial marker (tag 1, labeled as (2) in Figure \ref{fig:real_setup}) as a global anchor.
 
