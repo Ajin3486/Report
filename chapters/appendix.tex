@@ -41,9 +41,12 @@ r_t = r_{\text{track}} + r_{\text{smooth}} + r_{\text{bonus}}
 
 Where:
 \begin{itemize}
-    \item \textbf{Tracking Reward:} $r_{\text{track}} = \exp(-\|e_{pos}\|^2 / 0.02^2)$
-    \item \textbf{Smoothness Penalty:} $r_{\text{smooth}} = -0.05 \|\dot{q}\|^2 - 0.01 \|\ddot{q}\|^2$
-    \item \textbf{Success Bonus:} $r_{\text{bonus}} = +1.0$ if $\|e_{pos}\| < 0.01\text{m}$
+    \item \textbf{Tracking Reward:} $r_{\text{track}} = 5.0 \times \exp(-\|e_{\text{pos}}\|^2 / 0.02)$
+    \item \textbf{Guidance Reward:} $r_{\text{guide}} = 1.0 \times \exp(-\|e_q\|^2 / 0.05)$
+    \item \textbf{Action Penalty:} $p_{\text{action}} = 0.01 \times \|a\|^2$
+    \item \textbf{Smoothness Penalty:} $p_{\text{smooth}} = 0.1 \times \|\Delta a\|^2$
 \end{itemize}
+
+Total reward: $r = r_{\text{track}} + r_{\text{guide}} - p_{\text{action}} - p_{\text{smooth}}$
 
 
