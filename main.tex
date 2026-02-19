@@ -15,12 +15,32 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows, positioning, fit, backgrounds, shadows}
 \usepackage[percent]{overpic}
+\usepackage{fancyhdr}
 
 \geometry{
     a4paper,
     total={170mm,257mm},
     left=20mm,
     top=20mm,
+}
+
+% Header and footer setup
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{RL for Sim2Real Path Following --- UR10}}
+\fancyhead[R]{\small\textit{RAFARANIAINA J. \& VOGELGESANG L.}}
+\fancyhead[C]{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyfoot[C]{\rule{0.4\textwidth}{0.4pt}\\[2pt]\thepage}
+\renewcommand{\footrulewidth}{0pt}
+
+% Page style for chapter opening pages
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyhead[L]{\small\textit{RL for Sim2Real Path Following --- UR10}}
+  \fancyhead[R]{\small\textit{RAFARANIAINA J. \& VOGELGESANG L.}}
+  \renewcommand{\headrulewidth}{0.4pt}
+  \fancyfoot[C]{\rule{0.4\textwidth}{0.4pt}\\[2pt]\thepage}
 }
 
 % Code listing configuration
@@ -57,7 +77,9 @@
 
 \begin{document}
 
+\setcounter{page}{1}
 \begin{titlepage}
+\thispagestyle{empty}
     \centering
     \begin{minipage}{0.3\textwidth}
         \centering
@@ -88,7 +110,7 @@
 
     \vspace{1.5cm}
 
-    \textbf{\Large Abstract}\\[0.5cm] 
+  
     \parbox{0.9\linewidth}{
         \begin{abstract}
         This thesis presents the development of a hybrid robotic control pipeline for a UR10 manipulator, combining classical motion planning (MoveIt on ROS 2) with residual reinforcement learning (PPO on Isaac Lab). The system implements a residual learning architecture where a learned policy injects real-time corrections into the nominal trajectory to compensate for calibration errors and perception noise.
@@ -101,7 +123,11 @@
     {\large \today \par}
 \end{titlepage}
 
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{2}
 \tableofcontents
+\clearpage
 
 \chapter*{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}

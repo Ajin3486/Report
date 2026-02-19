@@ -1,11 +1,16 @@
-\chapter{Detailed Experimental Settings}
+\chapter*{Appendix}
+\addcontentsline{toc}{chapter}{Appendix}
 \label{appendix:experimental_settings}
 
-\section{PPO Hyperparameters \& Reward Function}
+This appendix provides supplementary technical details to ensure reproducibility of the results presented in this work.
+
+\medskip
+\noindent\textbf{PPO Training Hyperparameters.}
+Table~\ref{tab:ppo_params} reports the complete set of hyperparameters used to train the PPO policy in Isaac Lab. These values were selected based on standard baselines for continuous robotic control tasks and kept fixed throughout all experiments.
 
 \begin{table}[h]
 \centering
-\caption{PPO Hyperparameters}
+\caption{PPO Hyperparameters used for Isaac Lab training.}
 \label{tab:ppo_params}
 \begin{tabular}{ll}
 \toprule
@@ -21,7 +26,7 @@ Number of Epochs & 5 \\
 Clip Range ($\epsilon$) & 0.1 \\
 Entropy Coefficient & $1 \times 10^{-4}$ \\
 Value Function Coefficient & 1.0 \\
-Learning Rate & $1 \times 10^{-4}$ (Adaptive) \\
+Learning Rate & $1 \times 10^{-4}$ (Adaptive KL) \\
 Discount Factor ($\gamma$) & 0.99 \\
 GAE ($\lambda$) & 0.95 \\
 Max Iterations & 150 \\
@@ -29,16 +34,18 @@ Max Iterations & 150 \\
 \end{tabular}
 \end{table}
 
-The total reward is: $r = r_{\text{track}} + r_{\text{guide}} - p_{\text{action}} - p_{\text{smooth}}$, where $r_{\text{track}} = 5.0 \cdot e^{-\|e_{\text{pos}}\|^2/0.02}$, $r_{\text{guide}} = 1.0 \cdot e^{-\|e_q\|^2/0.05}$, $p_{\text{action}} = 0.01\|\mathbf{a}\|^2$, and $p_{\text{smooth}} = 0.1\|\Delta\mathbf{a}\|^2$.
+\medskip
+\noindent\textbf{Reward Function.}
+The total reward at each timestep is defined as:
+\begin{equation*}
+r = \underbrace{5.0\, e^{-\|e_{\mathrm{pos}}\|^2/0.02}}_{\text{tracking}} + \underbrace{1.0\, e^{-\|e_q\|^2/0.05}}_{\text{guidance}} - \underbrace{0.01\,\|\mathbf{a}\|^2}_{\text{action penalty}} - \underbrace{0.1\,\|\Delta\mathbf{a}\|^2}_{\text{smoothness penalty}}
+\end{equation*}
+The exponential kernels provide dense, bounded gradients at every timestep, while the penalty terms encourage energy-efficient and smooth joint corrections.
 
-\noindent\textbf{Source Code:} \url{https://github.com/Lucavogel/sim2real-pnp}
+\medskip
+\noindent\textbf{Source Code.}
+The complete implementation — including the Isaac Lab training environment, ROS\,2/MoveIt integration, PPO policy checkpoints, and dataset generation scripts — is publicly available at:\begin{center}\url{https://github.com/Lucavogel/sim2real-pnp}\end{center}
 
-\section{Source Code Repository}
-The full source code, training scripts, ROS 2 packages, and experimental data for this project are publicly available at:
-\begin{center}
-    \url{https://github.com/Lucavogel/sim2real-pnp}
-\end{center}
-The repository includes the Isaac Lab training environment, the ROS 2/MoveIt integration, the PPO policy checkpoints, and the dataset generation scripts.
 
 
 
