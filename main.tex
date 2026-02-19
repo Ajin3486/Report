@@ -35,8 +35,15 @@
 
 % Remove "Chapter" word and keep number on same line as title
 \usepackage{titlesec}
+\usepackage{etoolbox}
 \titleformat{\chapter}[hang]
   {\normalfont\huge\bfseries}{\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+
+% Remove forced new page before each chapter
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\makeatother
 
 \title{\textbf{Reinforcement Learning for Sim2Real and Path Following in Isaaclab with UR10}}
 \author{
@@ -112,6 +119,7 @@
 \chapter{Isaac Lab Training Environment}
 \input{chapters/chapitre4_phase2_training}
 
+\clearpage
 \chapter{Validation \& Results}
 \input{chapters/chapitre5_phase3_validation}
 
@@ -121,6 +129,7 @@
 \chapter{Conclusion \& Perspectives}
 \input{chapters/Conclusion}
 
+\clearpage
 \appendix
 \input{chapters/appendix}
 
