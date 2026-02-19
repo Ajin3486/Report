@@ -114,6 +114,18 @@ To bridge the sim-to-real gap, we explicitly model real-world imperfections in t
 
 This comprehensive noise modeling ensures the learned policy is robust to real-world uncertainties rather than overfitting to perfect simulation conditions.
 
+\subsection{Proximal Policy Optimization (PPO)}
+
+We use Proximal Policy Optimization (PPO) \cite{schulman2017proximal}, a state-of-the-art policy gradient algorithm chosen for its stability and sample efficiency in continuous robotic control. PPO constrains policy updates through a clipped objective function that prevents large destructive changes, ensuring monotonic improvement while reusing collected experience through mini-batch optimization.
+
+\textbf{Learning from rewards.} PPO iteratively improves the policy $\pi_\theta$ by maximizing the clipped surrogate objective:
+\begin{equation}
+L^{CLIP}(\theta) = \mathbb{E}_t \left[ \min\left(r_t(\theta) \hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right]
+\end{equation}
+where $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ is the probability ratio and $\epsilon=0.2$ limits update magnitude. The advantage $\hat{A}_t$ measures how much better an action is compared to average, estimated using Generalized Advantage Estimation (GAE) from our reward signal.
+
+The exponential reward kernel $\exp(-\|e_{pos}\|^2/\sigma^2)$ provides dense, differentiable gradients at every timestep, enabling PPO to learn from incremental improvements. The velocity and acceleration penalties naturally shape smooth corrections, while the bonus term accelerates convergence toward sub-centimeter accuracy. Across 4096 parallel environments, PPO collects diverse experiences and updates the policy to balance precision, smoothness, and energy efficiency.
+
 \subsection{PPO Agent Architecture}
 
 \textbf{Observation space ($S_t$, dimension 40).} The agent observes:
@@ -134,7 +146,7 @@ where $a_{ref}(t)$ comes from the MoveIt2 trajectory and $a_{residual}(t)$ is th
 
 \subsection{Reward Function}
 
-The reward function is designed to maximize tracking precision while minimizing jerky movements and energy consumption. We use an exponential kernel to provide dense, bounded rewards within $[0, 1]$:
+The reward function is the critical signal that drives PPO's learning process. It defines what constitutes "good" behavior and directly shapes the learned policy. Our reward is designed to maximize tracking precision while minimizing jerky movements and energy consumption. We use an exponential kernel to provide dense, bounded rewards within $[0, 1]$:
 
 \begin{equation}
 r_t = \underbrace{\exp\left(-\frac{\|e_{pos}\|^2}{\sigma_{pos}^2}\right)}_{r_{tracking}}
@@ -180,37 +192,19 @@ This efficient learning process demonstrates the effectiveness of the residual f
 To better understand the agent's behavior, we analyze the evolution of specific reward terms during training (as shown in the subplots of Figure~\ref{fig:learning_curve}):
 
 \begin{itemize}
+    \item \textbf{Mean Episode Reward:} The primary metric showing the agent's performance. It starts near zero and rapidly increases, reaching a plateau around reward value of 0.8-0.9. This exponential growth demonstrates that the agent successfully learned to minimize tracking error while respecting smoothness constraints. The stable convergence without oscillations indicates robust learning.
+    
+    \item \textbf{Mean Episode Length:} Tracks how long episodes run before termination. Initially very short (25-30 steps) due to frequent failures, it quickly increases to the maximum of 64 steps, showing that the agent learned to complete entire trajectories without early termination.
+    
     \item \textbf{Policy Loss (policy\_loss):} This metric starts high and decreases, reflecting the optimization of the actor network. The fluctuations indicate the continuous adjustment of the policy to find better actions.
     
     \item \textbf{Value Loss (value\_loss):} The value function estimator (Critic) rapidly reduces its prediction error. A low stable value loss means the Critic accurately predicts the expected return of the current state, which is crucial for stable PPO training.
     
     \item \textbf{Entropy (entropy):} The entropy curve shows a gradual decrease. Initially high, it encourages exploration of random actions. As training progresses, the agent becomes more confident in its optimal strategy, and the distribution of actions narrows (less randomness).
     
-    \item \textbf{Kl Divergence (kl\_div):} This metric monitors the difference between the old and new policy after each update. It remains bounded within a small range, confirming that the PPO clipping mechanism effectively prevents destructive large updates that could collapse the policy.
+    \item \textbf{Explained Variance (explained\_var):} Measures how well the value function predicts returns. Values close to 1.0 indicate excellent predictions, confirming the Critic's accuracy in estimating future rewards.
     
-    \item \textbf{Clip Fraction (clip\_frac):} This indicates how often the policy update was "clipped" by PPO constraints. A moderate value suggests that the algorithm is aggressively trying to improve the policy while being constrained to safe update steps.
+    \item \textbf{Learning Rate (lr):} Shows the adaptive learning rate schedule. It may decrease over time to allow finer policy adjustments as training progresses, ensuring stable convergence in later stages.
 \end{itemize}
 
-\subsubsection{Episode Length Analysis}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{images/meanreward.png}
-    \caption{Mean episode length and standard deviation during training.}
-    \label{fig:episode_length}
-\end{figure}
-
-Figure~\ref{fig:episode_length} shows the evolution of episode length during training. The mean episode length rapidly increases from approximately 25 steps to around 65 steps and stabilizes at this level. This metric provides crucial insight into the agent's task completion efficiency:
-
-\begin{itemize}
-    \item \textbf{Initial Phase (0-1000 iterations):} Episodes are very short because the agent frequently fails to reach the target or violates workspace constraints, triggering early termination. The low episode length reflects poor performance.
-    
-    \item \textbf{Learning Phase (1000-4000 iterations):} The sharp increase in episode length indicates that the agent is learning to maintain tracking and successfully complete longer trajectory segments without failure.
-    
-    \item \textbf{Mature Policy (>4000 iterations):} The stable plateau at 65 steps shows that the agent consistently completes full episodes. The maximum episode length is capped at 64 steps by design (trajectory duration), meaning the policy achieves near-perfect success rate in following the entire reference trajectory.
-    
-    \item \textbf{Low Standard Deviation:} The very small variance in episode length (shown in the right subplot) confirms the policy's reliability and consistency across different trajectory scenarios.
-\end{itemize}
-
-This metric complements the reward curve by quantifying task completion: a high reward could theoretically be achieved on short episodes, but high episode length with high reward proves that the agent successfully tracks entire trajectories.
 
