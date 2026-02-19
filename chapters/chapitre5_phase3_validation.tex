@@ -91,11 +91,11 @@ This is not tracking error but a \textit{deliberate correction}. The gap between
 
 Figure~\ref{fig:ee_speed} shows the end-effector velocity profile with average speed of 187.9 mm/s and peak of 587.5 mm/s at t=2.0s. 
 The smooth profile without high-frequency oscillations indicates stable control. The velocity modulation demonstrates an emergent speed-accuracy trade-off learned during training,
- where the agent adaptively adjusts speed based on trajectory requirements while maintaining safety limits.
+ where the agent adaptively adjusts speed based on trajectory requirements while maintaining safety limits. This is crucial in our context: during trajectory segments with high uncertainty (noisy perception or larger calibration errors), the agent automatically slows down to improve tracking precision, while during low-error phases it increases speed for efficiency. This adaptive behavior is not explicitly programmed but emerges from the RL training objective, showing that the policy has learned an intelligent balance between speed and accuracy—a key requirement for reliable real-world deployment.
 
 \section{Limitations of this validation}
 Although the results in Isaac Lab are promising, this validation remains a ``Sim-to-Sim'' evaluation within the same physics engine (PhysX). 
 The main risk is that the policy may have learned to exploit simulation-specific artifacts (numerical errors, simplified friction model) that do not exist in reality.
-To ensure true robustness before real-world deployment, it is crucial to test the policy in a physically different environment.
+To ensure true robustness before real-world deployment, it is crucial to validate the policy in different simulation environments (e.g., Gazebo, PyBullet with different physics parameters) and ultimately on real hardware.
 
 
