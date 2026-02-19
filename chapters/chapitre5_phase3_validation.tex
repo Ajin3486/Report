@@ -7,9 +7,9 @@ training environment. This controlled simulation setting allows us to precisely 
 Before presenting the quantitative results, we distinguish the two control strategies evaluated in this validation phase:
 
 \begin{itemize}
-    \item \textbf{Open-Loop (Baseline):} The robot executes the trajectory theoretically planned by MoveIt. In a perfect simulation, this would be accurate. However, in our "Sim-to-Real" validation scenarios, we introduce calibration errors (offset between the camera and the robot base) and sensor noise. In open-loop, the robot blindly follows the plan without correcting for these discrepancies, leading to significant end-effector errors.
+    \item \textbf{Open-Loop (Baseline):} The robot executes the trajectory theoretically planned by MoveIt. In a perfect simulation, this would be accurate. However, in our ``Sim-to-Real'' validation scenarios, we introduce calibration errors (offset between the camera and the robot base) and sensor noise. In open-loop, the robot blindly follows the plan without correcting for these discrepancies, leading to significant end-effector errors.
     
-    \item \textbf{Closed-Loop RL (AI):} This is the proposed residual learning approach. The AI agent acts as a high-frequency feedback controller (60Hz). It continuously monitors the \textit{observed} state (proprioception + noisy vision) and the tracking error. Unlike the baseline, the AI "closes the loop" by injecting real-time joint corrections ($\Delta q$) to minimize the distance to the perceived target. This allows it to dynamically compensate for the static calibration errors and filter out high-frequency sensor noise.
+    \item \textbf{Closed-Loop RL (AI):} This is the proposed residual learning approach. The AI agent acts as a high-frequency feedback controller (60Hz). It continuously monitors the \textit{observed} state (proprioception + noisy vision) and the tracking error. Unlike the baseline, the AI ``closes the loop'' by injecting real-time joint corrections ($\Delta q$) to minimize the distance to the perceived target. This allows it to dynamically compensate for the static calibration errors and filter out high-frequency sensor noise.
 \end{itemize}
 
 The achieved success rate exceeds 95\% on a test set comprising random trajectories with perception noise and simulated calibration error. This validates that the agent has successfully learned to correct the trajectories from the MoveIt planner.
@@ -59,7 +59,7 @@ Figure~\ref{fig:error_comparison} shows the position error norm over time. The r
     \label{fig:trajectory_x}
 \end{figure}
 
-Figure~\ref{fig:trajectory_x} illustrates end-effector tracking along the X-axis over a complex trajectory with multiple phases. The blue line represents the desired reference trajectory from MoveIt, exhibiting three distinct motion segments: a smooth ascent (0-2s, 800mm→945mm), an abrupt return to origin (t≈2s), a second ascent phase (2-4s), and a final rapid descent (t≈4s). The red curve shows the observed trajectory corrupted by sensor noise (±2mm Gaussian jitter) and systematic calibration error (±20mm bias), creating high-frequency oscillations around the true position. 
+Figure~\ref{fig:trajectory_x} illustrates end-effector tracking along the X-axis over a complex trajectory with multiple phases. The blue line represents the desired reference trajectory from MoveIt, exhibiting three distinct motion segments: a smooth ascent (0--2s, 800mm$\rightarrow$945mm), an abrupt return to origin ($t\approx2$s), a second ascent phase (2--4s), and a final rapid descent ($t\approx4$s). The red curve shows the observed trajectory corrupted by sensor noise ($\pm$2mm Gaussian jitter) and systematic calibration error ($\pm$20mm bias), creating high-frequency oscillations around the true position. 
 
 The green curve demonstrates the RL agent's actual executed trajectory. Despite receiving noisy observations, the agent maintains tight tracking of the desired reference with 5.3mm mean error. Critically, the agent does not blindly follow the noisy measurements but instead acts as an intelligent filter: it extracts the underlying signal from corrupted observations while maintaining smooth motion. Even during rapid direction changes at t=2s and t=4s where noise peaks occur, the RL policy remains stable without overshoot or oscillation, demonstrating robust closed-loop control that compensates for both perception errors and dynamic disturbances.
 
@@ -72,7 +72,7 @@ The green curve demonstrates the RL agent's actual executed trajectory. Despite 
 
 Figure~\ref{fig:joint_j4} reveals the fundamental difference between open-loop and closed-loop control at the joint level for J4 (wrist\_1). \textbf{Top panel (Open-Loop):} The robot perfectly tracks the MoveIt reference trajectory (blue curve matches executed joint positions). There is \textit{no joint-level tracking error} because the controller faithfully executes the planned joint commands. However, this reference was computed using an erroneous camera calibration — therefore, despite perfect joint tracking, the end-effector misses its Cartesian target by 28mm on average.
 
-\textbf{Bottom panel (Closed-Loop RL):} The RL agent intentionally deviates from the reference by applying a systematic +0.63\textdegree\ bias on J4. This is not tracking error but a \textit{deliberate correction}. The gap between the blue reference and the orange executed trajectory shows that the agent has learned to compensate for the calibration error by exploiting kinematic redundancy. By slightly adjusting this wrist joint, the policy corrects the end-effector position without requiring recalibration or replanning. This demonstrates intelligent closed-loop compensation: the agent "knows" the reference is biased and proactively corrects it to achieve the true task-space objective.
+\textbf{Bottom panel (Closed-Loop RL):} The RL agent intentionally deviates from the reference by applying a systematic +0.63\textdegree\ bias on J4. This is not tracking error but a \textit{deliberate correction}. The gap between the blue reference and the green executed trajectory shows that the agent has learned to compensate for the calibration error by exploiting kinematic redundancy. By slightly adjusting this wrist joint, the policy corrects the end-effector position without requiring recalibration or replanning. This demonstrates intelligent closed-loop compensation: the agent ``knows'' the reference is biased and proactively corrects it to achieve the true task-space objective.
 
 \begin{figure}[htbp]
     \centering
@@ -84,7 +84,7 @@ Figure~\ref{fig:joint_j4} reveals the fundamental difference between open-loop a
 Figure~\ref{fig:ee_speed} shows the end-effector velocity profile with average speed of 187.9 mm/s and peak of 587.5 mm/s at t=2.0s. The smooth profile without high-frequency oscillations indicates stable control. The velocity modulation demonstrates an emergent speed-accuracy trade-off learned during training, where the agent adaptively adjusts speed based on trajectory requirements while maintaining safety limits.
 
 \section{Limitations of this validation}
-Although the results in Isaac Lab are promising, this validation remains a "Sim-to-Sim" evaluation within the same physics engine (PhysX). 
+Although the results in Isaac Lab are promising, this validation remains a ``Sim-to-Sim'' evaluation within the same physics engine (PhysX). 
 The main risk is that the policy may have learned to exploit simulation-specific artifacts (numerical errors, simplified friction model) that do not exist in reality.
 To ensure true robustness before real-world deployment, it is crucial to test the policy in a physically different environment.
 

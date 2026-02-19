@@ -1,5 +1,9 @@
 \section{Residual RL Training in Isaac Lab}
 
+\subsection{Simulation Environment}
+
+\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. The number of simultaneous environments depends on the available GPU memory—higher-end GPUs enable more parallel simulations. In our setup using an NVIDIA RTX 4060, we can instantiate approximately 4000 environments in parallel, with each environment consuming roughly 1 environment per robot simulated. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions (see Figure \ref{fig:isaac_lab_training}).
+
 \begin{figure}[!htb]
     \centering
     \includegraphics[width=1\textwidth]{images/train.png}
@@ -7,23 +11,11 @@
     \label{fig:isaac_lab_training}
 \end{figure}
 
+\textbf{ROS 2 dataset as reference trajectories.} The dataset of 500 trajectories generated with MoveIt2 (Chapter 3) is loaded into Isaac Lab and serves as the nominal reference behavior. During each training episode, a random trajectory from this dataset is sampled, providing the reference joint positions $q_{ref}(t)$ that the agent will learn to improve through residual corrections. This approach ensures the policy learns to enhance an already safe baseline rather than learning control from scratch.
+
 \section{Synthetic Perception \& Noise}
 To prepare the policy for deployment on the physical UR10 robot and bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections observed on our actual hardware setup are explicitly modeled in the simulator. 
 These perturbations affect both the agent's perception and the physical dynamics:
-
-
-
-\subsection{Simulation Environment}
-
-\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. The number of simultaneous environments depends on the available GPU memory—higher-end GPUs enable more parallel simulations. In our setup using an NVIDIA RTX 4060, we can instantiate approximately 4000 environments in parallel, with each environment consuming roughly 1 environment per robot simulated. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions.
-
-
-
-\textbf{ROS 2 dataset as reference trajectories.} The dataset of 500 trajectories generated with MoveIt2 (Chapter 3) is loaded into Isaac Lab and serves as the nominal reference behavior. During each training episode, a random trajectory from this dataset is sampled, providing the reference joint positions $q_{ref}(t)$ that the agent will learn to improve through residual corrections. This approach ensures the policy learns to enhance an already safe baseline rather than learning control from scratch.
-
-
-
-\subsection{Synthetic Perception \& Reality Gap Modeling}
 
 
 \begin{figure}[!htb]
@@ -188,23 +180,14 @@ The results show rapid and stable convergence. Figure~\ref{fig:learning_curve} i
 
 This efficient learning process demonstrates the effectiveness of the residual formulation: since the agent only needs to learn small corrections around a valid base trajectory, the problem is much simpler than learning full control from scratch.
 
-\subsubsection{Analysis of individual reward components}
-To better understand the agent's behavior, we analyze the evolution of specific reward terms during training (as shown in the subplots of Figure~\ref{fig:learning_curve}):
+\subsubsection{Analysis of Training Dynamics}
 
+To better understand the agent's behavior, we analyze the evolution of key training metrics (Figure \ref{fig:learning_curve}).
 \begin{itemize}
-    \item \textbf{Mean Episode Reward:} The primary metric showing the agent's performance. It starts near zero and rapidly increases, reaching a plateau around reward value of 0.8-0.9. This exponential growth demonstrates that the agent successfully learned to minimize tracking error while respecting smoothness constraints. The stable convergence without oscillations indicates robust learning.
-    
-    \item \textbf{Mean Episode Length:} Tracks how long episodes run before termination. Initially very short (25-30 steps) due to frequent failures, it quickly increases to the maximum of 64 steps, showing that the agent learned to complete entire trajectories without early termination.
-    
-    \item \textbf{Policy Loss (policy\_loss):} This metric starts high and decreases, reflecting the optimization of the actor network. The fluctuations indicate the continuous adjustment of the policy to find better actions.
-    
-    \item \textbf{Value Loss (value\_loss):} The value function estimator (Critic) rapidly reduces its prediction error. A low stable value loss means the Critic accurately predicts the expected return of the current state, which is crucial for stable PPO training.
-    
-    \item \textbf{Entropy (entropy):} The entropy curve shows a gradual decrease. Initially high, it encourages exploration of random actions. As training progresses, the agent becomes more confident in its optimal strategy, and the distribution of actions narrows (less randomness).
-    
-    \item \textbf{Explained Variance (explained\_var):} Measures how well the value function predicts returns. Values close to 1.0 indicate excellent predictions, confirming the Critic's accuracy in estimating future rewards.
-    
-    \item \textbf{Learning Rate (lr):} Shows the adaptive learning rate schedule. It may decrease over time to allow finer policy adjustments as training progresses, ensuring stable convergence in later stages.
+    \item \textbf{Mean Episode Reward:} The primary metric starts near zero and rapidly plateaus around 375-380. This exponential growth demonstrates successful learning of tracking error minimization.
+    \item \textbf{Mean Episode Length:} Quickly converges to the maximum horizon (64 steps), indicating that the agent learned to complete entire trajectories without early failures.
+    \item \textbf{Policy Entropy:} Shows a gradual decrease, confirming the transition from exploration (high randomness) to exploitation (confident, deterministic strategy).
+    \item \textbf{Value Function Loss:} Rapidly drops to near zero, proving the Critic network accurately predicts expected returns, essential for stable PPO updates.
 \end{itemize}
 
 

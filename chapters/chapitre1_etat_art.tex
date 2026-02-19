@@ -11,17 +11,23 @@ However, classical motion planners operate under the assumption that the robot m
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.3\textwidth]{images/Reinforcement_learning_diagram.png}
-\caption{Reinforcement Learning cycle: The agent observes the state, takes an action, receives a reward from the environment, and transitions to a new state.}
+\caption{The Reinforcement Learning cycle: interaction between the agent (policy) and the environment.}
 \label{fig:rl_cycle}
 \end{figure}
 
-Reinforcement Learning (RL) teaches a robot through trial and error, like learning to ride a bicycle. As shown in Figure \ref{fig:rl_cycle}, the robot (agent) observes its state, takes an action, and receives a reward (positive if good, negative if bad). Through thousands of repetitions, it learns which actions lead to success.
+Reinforcement Learning (RL) is a computational framework for learning optimal control policies through interaction with an environment. Unlike supervised learning, which relies on labeled datasets, RL agents learn by maximizing a cumulative reward signal. As illustrated in Figure \ref{fig:rl_cycle}, the agent observes the state $s_t$, executes an action $a_t$, and receives a scalar reward $r_t$. Through repeated episodes, algorithms like Proximal Policy Optimization (PPO) optimize the policy parameters to maximize the expected return over time.
 
-\textbf{Concrete example.} Consider the robot trying to reach a target position. At timestep $t$, the state might be: current joint angles $[0.1, -0.5, 1.2, -1.1, -1.6, 0.0]$ rad and target distance $0.15$ m. The policy outputs an action: joint velocity corrections $[0.02, -0.01, 0.03, 0.0, -0.01, 0.0]$ rad/s. If this action reduces the distance to $0.10$ m, the reward is positive ($r_t = +0.5$); if distance increases, the reward is negative. After observing 10,000 such examples, the policy learns which joint motions consistently reduce target distance.
+\textbf{Example scenario.} To illustrate the process in robotic manipulation, consider a task where the robot must reach a target. At timestep $t$:
+\begin{itemize}
+    \item \textbf{State ($s_t$):} The agent perceives the current joint configuration (e.g., $[0.1, -0.5, \dots]$ rad) and the Cartesian distance to the target (e.g., $0.15$ m).
+    \item \textbf{Action ($a_t$):} The policy outputs velocity corrections (e.g., $[0.02, -0.01, \dots]$ rad/s).
+    \item \textbf{Reward ($r_t$):} If the action reduces the target distance to $0.10$ m, the agent receives a positive reward ($+0.5$). If the distance increases, it receives a penalty.
+\end{itemize}
+Over millions of such interactions in simulation, the policy converges to a control strategy that consistently minimizes tracking error.
 
-\textbf{The simulation solution.} Training on a physical robot is impractical—it would take weeks and risk damage. Instead, NVIDIA Isaac Lab runs thousands of simulated robots simultaneously on GPU, reducing training from weeks to hours. Once trained in simulation, the policy can be deployed to the real robot (sim-to-real transfer).
+\textbf{Simulation-based training.} Training directly on physical hardware is impractical due to time constraints and safety risks. Instead, we leverage NVIDIA Isaac Lab to simulate thousands of robots in parallel on a single GPU. This allows collecting years of simulated experience in just hours of wall-clock time. Once trained, the policy is transferred to the real robot (Sim-to-Real transfer).
 
-\textbf{PPO algorithm.} We use Proximal Policy Optimization (PPO) because it is stable (smooth learning without erratic changes) and sample-efficient (learns without excessive trials). PPO has proven successful in various robotics applications from locomotion to manipulation.
+\textbf{Algorithm choice.} We employ Proximal Policy Optimization (PPO), an on-policy gradient method that balances sample efficiency with training stability. PPO prevents destructive policy updates by clipping the objective function, ensuring monotonic improvement without requiring extensive hyperparameter tuning.
 
 \section{Residual Learning}
 

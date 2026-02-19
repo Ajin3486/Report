@@ -1,22 +1,16 @@
 \section{Trajectory Generation}
 
-This chapter describes how we generate training and validation trajectories using MoveIt2's Cartesian path planning capabilities designed for eventual deployment on the physical UR10 robot. We first explain the technical approach for generating straight-line trajectories, then detail the distinction between training and validation datasets.
+We generate training and validation trajectories using MoveIt2's Cartesian path planning capabilities, specifically designed for eventual deployment on the physical UR10 robot.
 
 \subsection{Cartesian Path Planning with MoveIt2}
 
-\textbf{Cartesian interpolation for perfect straight lines.} We use MoveIt2's \texttt{compute\_cartesian\_path} service to generate all trajectories. This choice is deliberate and differs fundamentally from sampling-based planners like RRT (Rapidly-exploring Random Trees):
+We deliberately chose MoveIt2's \texttt{compute\_cartesian\_path} service over standard sampling-based planners like RRT (Rapidly-exploring Random Trees) or RRT-Connect. Sampling-based algorithms explore the configuration space randomly to avoid obstacles, which results in curved, non-intuitive paths in joint space that vary significantly between execution runs.
 
-\begin{itemize}
-  \item \textbf{RRT/RRTConnect:} Sampling-based motion planning that explores the configuration space randomly to find collision-free paths. While robust for complex environments with obstacles, RRT produces curved, non-intuitive paths in joint space that vary between runs.
-  
-  \item \textbf{compute\_cartesian\_path:} Direct linear interpolation in Cartesian workspace coordinates (X, Y, Z) followed by inverse kinematics at each waypoint. This produces perfectly straight lines in task space—exactly what we need for interpretable learning and consistent training data.
-\end{itemize}
-
-By using Cartesian interpolation, we ensure that all trajectories follow intuitive straight-line motions in workspace coordinates, making the learning problem more tractable and the resulting policy more interpretable.
+In contrast, \textbf{Cartesian interpolation} performs direct linear interpolation in workspace coordinates (X, Y, Z) followed by inverse kinematics solution at each waypoint. This produces perfectly straight lines in the task space. This consistency is crucial for Reinforcement Learning: it provides the agent with a stable and predictable reference behavior, allowing it to focus strictly on learning to correct errors rather than compensating for the planner's stochastic variations.
 
 \subsection{Training vs Validation Data}
 
-\textbf{Training data: Random trajectories for generalization.} To ensure the neural network learns a general correction policy rather than memorizing specific paths, we generate a training dataset of 500 random straight-line trajectories covering the entire workspace. Each trajectory connects two random waypoints within the bounds (X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed), resampled to 64 timesteps (5.33 seconds at 12Hz). This diversity forces the agent to learn robust corrections applicable to any position within the workspace, preventing overfitting to a single task.
+\textbf{Training data: Random trajectories for generalization.} To ensure the neural network learns a general correction policy rather than memorizing specific paths, we generate a training dataset of 500 random straight-line trajectories covering the entire workspace. A key contribution of this work was defining these trajectories based specifically on the physical constraints of our real UR10 setup. We carefully selected the workspace bounds (X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed) to match the reachable and safe operating area of the physical robot in our laboratory environment. Each trajectory connects two random waypoints within these physically validated limits, resampled to 64 timesteps (5.33 seconds at 12Hz). This diversity forces the agent to learn robust corrections applicable to any position within the real workspace, preventing overfitting to a single task.
 
 \textbf{Validation data: Tag-to-tag trajectories.} After training, we validate the learned policy using trajectories between actual physical AprilTag positions detected by the real camera on the real UR10 setup. This mirrors exactly the intended real-world deployment scenario where the robot must navigate between known markers in the physical environment. These validation trajectories were never seen during training, ensuring an unbiased evaluation of generalization capability and readiness for sim-to-real transfer.
 

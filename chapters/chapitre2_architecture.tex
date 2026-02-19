@@ -1,8 +1,7 @@
-\section{System Architecture}
 
 This chapter provides an overview of the complete system architecture before diving into implementation details. We first present the global software pipeline connecting all components, then describe the physical hardware setup, and finally explain the coordinate transformation framework that enables precise motion planning.
 
-\subsection{Global Software Pipeline}
+\section{Global Software Pipeline}
 
 Figure \ref{fig:global_pipeline} presents the complete data flow from the physical setup to validation. This pipeline consists of five key stages, each playing a specific role in the residual reinforcement learning approach.
 
@@ -81,7 +80,7 @@ Figure \ref{fig:global_pipeline} presents the complete data flow from the physic
 
 \textbf{Stage 5: Validation in Isaac Lab.} After training, we compare the performance of three approaches: (1) MoveIt baseline alone (no RL), (2) RL policy alone (no MoveIt), and (3) Residual control (MoveIt + RL). This comparison demonstrates the benefit of combining classical planning with learned corrections under realistic noise and calibration errors (detailed in Chapter 5).
 
-\subsection{Hardware Setup}
+\section{Hardware Setup}
 
 \begin{figure}[h]
 \centering
@@ -103,65 +102,41 @@ The physical system (Figure \ref{fig:real_setup}) corresponds to Stage 1 of the 
   \item \textbf{Camera (4):} Webcam mounted in an eye-to-hand configuration for AprilTag detection and 3D localization of target objects.
 \end{itemize}
 
-\subsubsection{Kinematic and Dynamic Modeling}
+\subsection{Kinematic and Dynamic Modeling}
 
 To ensure accurate control and enable seamless sim-to-real transfer, the kinematic and dynamic models of the UR10 are derived from the official Unified Robot Description Format (URDF) provided by Universal Robots via the \texttt{ur\_description} ROS package. The kinematic model defines the physical dimensions, joint limits, and collision meshes matching our physical robot. The dynamic model incorporates the manufacturer-specified inertial properties (mass, center of mass, inertia tensors) and joint friction coefficients. These official specifications are imported identically into both the MoveIt planning scene and the Isaac Lab physics engine to maintain perfect consistency between simulation training and intended real-world deployment.
 
-\subsubsection{Camera and AprilTag Specifications}
+\subsection{Vision System Calibration}
 
-\textbf{Camera hardware.} We use a Logitech C930e webcam (4) configured at 640$\times$480 resolution running at 30 frames per second. This consumer-grade camera provides sufficient image quality for AprilTag detection while maintaining real-time performance.
+\textbf{Camera hardware.} We use a Logitech C930e webcam (4) configured at 640$\times$480 resolution at 30 fps, providing sufficient quality for real-time AprilTag detection.
 
-\textbf{Intrinsic calibration.} The camera's (4) intrinsic parameters (focal lengths, principal point, distortion coefficients) were calibrated using a standard checkerboard calibration pattern. The resulting camera matrix is:
-\begin{equation}
-K = \begin{bmatrix}
-507.71 & 0 & 318.97 \\
-0 & 507.01 & 237.61 \\
-0 & 0 & 1
-\end{bmatrix}
-\end{equation}
-with radial and tangential distortion coefficients modeled using the plumb\_bob model ($k_1=0.149, k_2=-0.675, p_1=-0.002, p_2=-0.001, k_3=1.382$). These parameters enable accurate 3D pose estimation from 2D image measurements.
+\textbf{AprilTag markers.} Four fiducial markers from the 36h11 family (10cm $\times$ 10cm, IDs 0--3) are used for localization. Tag ID 1, labeled as (2) in Figure \ref{fig:real_setup}, serves as the reference anchor frame.
 
-\textbf{AprilTag configuration.} We use four AprilTag markers from the 36h11 family, each measuring 10cm $\times$ 10cm. The tag IDs are 0, 1, 2, and 3, with tag 1 serving as the reference anchor frame (2). The 36h11 family provides robust detection with low false positive rates while maintaining computational efficiency.
+\textbf{Intrinsic parameters.} Camera intrinsics were calibrated using a checkerboard pattern, yielding focal lengths $f_x=507.71$, $f_y=507.01$, principal point $(c_x, c_y)=(318.97, 237.61)$, and plumb\_bob distortion coefficients $(k_1, k_2, p_1, p_2, k_3) = (0.149, -0.675, -0.002, -0.001, 1.382)$.
 
-\textbf{Extrinsic calibration.} To establish a common coordinate system between the perception system (camera (4)) and the actuation system (robot (1)), we use the reference fiducial marker (tag 1, labeled as (2) in Figure \ref{fig:real_setup}) as a global anchor. The transformation between the robot base frame and this reference tag was determined through manual physical measurement. The measured translation vector is:
+\textbf{Extrinsic calibration and coordinate frames.} To enable motion planning in the robot's coordinate system, we must establish a common reference frame between the perception system (camera (4)) and the actuation system (robot (1)). We achieve this by using the reference fiducial marker (tag 1, labeled as (2) in Figure \ref{fig:real_setup}) as a global anchor.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.5\textwidth]{images/Ros2_env.jpeg}
+\caption{ROS2 TF tree visualization showing the transformation chain from robot base through reference tag and camera to detected targets}
+\label{fig:ros_tf}
+\end{figure}
+
+This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. Additionally, using a dedicated reference tag ensures continuous visibility of the world frame, whereas task-specific tags may be occluded by the robot arm during manipulation. The transformation between the robot base frame and this reference tag was determined through manual physical measurement. The measured translation vector is:
 \begin{equation}
 \mathbf{t}_{\text{base}}^{\text{ref}} = [\Delta x, \Delta y, \Delta z]^T = [-0.193, -0.255, -0.01]^T \text{ (m)}
 \end{equation}
 
-This vector is broadcast as a static TF transformation in ROS 2, allowing us to compute the camera's extrinsic pose relative to the robot base by chaining transformations:
+This vector is broadcast as a static TF transformation in ROS 2, allowing the system to continuously compute the camera's extrinsic pose relative to the robot base by chaining transformations:
 \begin{equation}
 T_{\text{base}}^{\text{camera}} = T_{\text{base}}^{\text{ref}} \cdot (T_{\text{camera}}^{\text{ref}})^{-1}
 \end{equation}
 
-
-\subsection{Coordinate Frame Transformations}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.5\textwidth]{images/Ros2_env.jpeg}
-\caption{ROS2 TF visualization showing workspace boundaries and coordinate frames}
-\label{fig:ros_tf}
-\end{figure}
-
-The camera (4) detects AprilTag markers and estimates their 3D positions in its local frame. To enable motion planning in the robot's coordinate system, we establish a fixed world coordinate system anchored to the reference tag (2) with a vertical offset of 21.5cm to align with the robot's base frame. 
-
-\textbf{Importance of the reference tag (2).} This anchor frame is critical: without it, the coordinate system would drift as the camera moves or vibrates, causing inconsistent target positions. By fixing the world frame to a stationary physical marker, all measurements remain stable and repeatable—essential for precise manipulation tasks.
-\vspace{5cm}
-
-The transformation chain (Figure \ref{fig:ros_tf}) follows the kinematic sequence:
-\begin{equation}
-\text{World} \rightarrow \text{Reference Tag} \rightarrow \text{Camera} \rightarrow \text{Target Tag}
-\end{equation}
-
-Mathematically expressed as:
+The complete transformation chain (Figure \ref{fig:ros_tf}) enables converting any detected tag position to the robot's base frame for motion planning:
 \begin{equation}
 T_{\text{base}}^{\text{tag}} = T_{\text{base}}^{\text{ref}} \cdot T_{\text{ref}}^{\text{cam}} \cdot T_{\text{cam}}^{\text{tag}}
 \end{equation}
-where:
-\begin{itemize}
-  \item $T_{\text{cam}}^{\text{tag}}$: camera frame → detected tag (vision-based detection)
-  \item $T_{\text{ref}}^{\text{cam}}$: reference tag → camera (calibrated once)
-  \item $T_{\text{base}}^{\text{ref}}$: robot base → reference tag (21.5cm vertical offset)
-\end{itemize}
+where $T_{\text{cam}}^{\text{tag}}$ is the vision-based detection, $T_{\text{ref}}^{\text{cam}}$ is obtained by inverting the detected reference tag pose, and $T_{\text{base}}^{\text{ref}}$ is the manually measured static offset.
 
-This chain allows any detected tag position to be expressed in the robot's base frame for motion planning.
+

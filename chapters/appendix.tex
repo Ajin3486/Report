@@ -1,0 +1,47 @@
+\chapter{Detailed Experimental Settings}
+\label{appendix:experimental_settings}
+
+This appendix provides the specific hyperparameters used for the PPO training and the exact domain randomization ranges, ensuring reproducibility of the results presented in this work.
+
+\section{PPO Hyperparameters}
+Table \ref{tab:ppo_params} lists the hyperparameters used for the Proximal Policy Optimization (PPO) algorithm in Isaac Lab. These values were selected based on standard baselines for continuous control tasks.
+
+\begin{table}[h]
+\centering
+\caption{PPO Hyperparameters}
+\label{tab:ppo_params}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Total Timesteps & 72,000 (approx.) \\
+Number of Environments & 4096 \\
+Horizon (Steps per Episode) & 64 \\
+Batch Size & 32,768 \\
+Mini-batch Size & 4096 \\
+Number of Epochs & 5 \\
+Clip Range ($\epsilon$) & 0.2 \\
+Entropy Coefficient & 0.01 \\
+Value Function Coefficient & 1.0 \\
+Learning Rate & $5 \times 10^{-4}$ (Linear decay) \\
+Discount Factor ($\gamma$) & 0.99 \\
+GAE ($\lambda$) & 0.95 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Reward Function Formulation}
+The total reward $r_t$ at timestep $t$ is computed as:
+
+\begin{equation}
+r_t = r_{\text{track}} + r_{\text{smooth}} + r_{\text{bonus}}
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item \textbf{Tracking Reward:} $r_{\text{track}} = \exp(-\|e_{pos}\|^2 / 0.02^2)$
+    \item \textbf{Smoothness Penalty:} $r_{\text{smooth}} = -0.05 \|\dot{q}\|^2 - 0.01 \|\ddot{q}\|^2$
+    \item \textbf{Success Bonus:} $r_{\text{bonus}} = +1.0$ if $\|e_{pos}\| < 0.01\text{m}$
+\end{itemize}
+
+
