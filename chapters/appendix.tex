@@ -43,14 +43,19 @@ r = \underbrace{5.0\, e^{-\|e_{\mathrm{pos}}\|^2/0.02}}_{\text{tracking}} + \und
 The exponential kernels provide dense, bounded gradients at every timestep, while the penalty terms encourage energy-efficient and smooth joint corrections.
 
 \medskip
+\noindent\textbf{Training Duration.}
+The full training run (150 iterations, 4096 parallel environments, NVIDIA RTX\,4060) lasted \textbf{10 hours and 9 minutes} (10:09:11), as shown in Figure~\ref{fig:training_duration_log}. This demonstrates the practical feasibility of the approach on a consumer-grade GPU.
+
+
+
+\medskip
 \noindent\textbf{Source Code.}
-The complete implementation — including the Isaac Lab training environment, ROS\,2/MoveIt integration, PPO policy checkpoints, and dataset generation scripts — is publicly available at:\begin{center}\url{https://github.com/Lucavogel/sim2real-pnp}\end{center}
+The complete implementation — including the Isaac Lab training environment, ROS\,2/MoveIt integration, PPO policy checkpoints, and dataset generation scripts — is publicly available at:
+\begin{center}\url{https://github.com/Lucavogel/sim2real-pnp}\end{center}
+\vspace{4cm}
+\noindent\textbf{Training Duration.}
+The full training run (150 iterations, 4096 parallel environments, NVIDIA RTX\,4060) lasted \textbf{10 hours and 9 minutes} (10:09:11), as shown in Figure~\ref{fig:training_duration_log}. This demonstrates the practical feasibility of the approach on a consumer-grade GPU.
 
-
-
-\section{Training Duration}
-The PPO training run used for the reported results lasted approximately 10 hours.
-According to the execution log, the elapsed training time was \textbf{10:09:11} (about 10 h).
 
 \begin{figure}[h]
     \centering
