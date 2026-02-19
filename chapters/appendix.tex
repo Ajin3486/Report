@@ -31,6 +31,7 @@ Max Iterations & 150 \\
 
 The total reward is: $r = r_{\text{track}} + r_{\text{guide}} - p_{\text{action}} - p_{\text{smooth}}$, where $r_{\text{track}} = 5.0 \cdot e^{-\|e_{\text{pos}}\|^2/0.02}$, $r_{\text{guide}} = 1.0 \cdot e^{-\|e_q\|^2/0.05}$, $p_{\text{action}} = 0.01\|\mathbf{a}\|^2$, and $p_{\text{smooth}} = 0.1\|\Delta\mathbf{a}\|^2$.
 
+\vspace{ 2cm}
 \noindent\textbf{Source Code:} \url{https://github.com/Lucavogel/sim2real-pnp}
 
 \section{Source Code Repository}
@@ -41,6 +42,7 @@ The full source code, training scripts, ROS 2 packages, and experimental data fo
 The repository includes the Isaac Lab training environment, the ROS 2/MoveIt integration, the PPO policy checkpoints, and the dataset generation scripts.
 
 
+\vspace{ 4cm}
 \section{Training Duration}
 The PPO training run used for the reported results lasted approximately 10 hours.
 According to the execution log, the elapsed training time was \textbf{10:09:11} (about 10 h).
