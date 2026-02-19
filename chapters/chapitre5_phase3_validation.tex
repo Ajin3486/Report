@@ -16,7 +16,7 @@ The achieved success rate exceeds 95\% on a test set comprising random trajector
 
 \begin{table}[htbp]
 \centering
-\caption{Comparaison des métriques de performance entre les approches Open-Loop et Closed-Loop RL.}
+\caption{Comparison of performance metrics between Open-Loop and Closed-Loop RL approaches.}
 \label{tab:performance}
 
 \begin{tabular}{lccc}
@@ -59,16 +59,20 @@ Figure~\ref{fig:error_comparison} shows the position error norm over time. The r
     \label{fig:trajectory_x}
 \end{figure}
 
-Figure~\ref{fig:trajectory_x} shows end-effector position along the X-axis. The blue dashed line represents the ideal reference trajectory, the orange dotted line shows noisy observations with sensor noise and calibration errors, and the green solid line indicates the actual executed trajectory. The RL agent tracks the reference with 5.3mm average error on X-axis, demonstrating robustness to observation noise by filtering rather than blindly following noisy measurements.
+Figure~\ref{fig:trajectory_x} illustrates end-effector tracking along the X-axis over a complex trajectory with multiple phases. The blue line represents the desired reference trajectory from MoveIt, exhibiting three distinct motion segments: a smooth ascent (0-2s, 800mm→945mm), an abrupt return to origin (t≈2s), a second ascent phase (2-4s), and a final rapid descent (t≈4s). The red curve shows the observed trajectory corrupted by sensor noise (±2mm Gaussian jitter) and systematic calibration error (±20mm bias), creating high-frequency oscillations around the true position. 
+
+The green curve demonstrates the RL agent's actual executed trajectory. Despite receiving noisy observations, the agent maintains tight tracking of the desired reference with 5.3mm mean error. Critically, the agent does not blindly follow the noisy measurements but instead acts as an intelligent filter: it extracts the underlying signal from corrupted observations while maintaining smooth motion. Even during rapid direction changes at t=2s and t=4s where noise peaks occur, the RL policy remains stable without overshoot or oscillation, demonstrating robust closed-loop control that compensates for both perception errors and dynamic disturbances.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.95\textwidth]{images/fig4_joint_j4_strategy.png}
-    \caption{Joint J4 (wrist\_1) position comparison. Top: open-loop tracking shows deviation from reference. Bottom: closed-loop RL applies a bias of +0.63° on J4 to improve end-effector accuracy.}
+    \caption{Joint J4 (wrist\_1) position comparison. Top: open-loop executes MoveIt reference perfectly but suffers from calibration errors at task-space level. Bottom: closed-loop RL intentionally deviates by +0.63° to compensate for systematic errors.}
     \label{fig:joint_j4}
 \end{figure}
 
-Figure~\ref{fig:joint_j4} reveals the RL correction strategy at joint level for J4 (wrist\_1). Top panel: open-loop tracking follows the reference perfectly but leads to end-effector errors. Bottom panel: the RL policy systematically applies a +0.63\textdegree\ bias to J4. The gap between the reference (blue dashed) and RL-corrected target (orange dotted) shows this proactive compensation. This consistent bias compensates for systematic errors (gravity, friction, calibration) and exploits kinematic redundancy to improve end-effector accuracy without compromising motion quality.
+Figure~\ref{fig:joint_j4} reveals the fundamental difference between open-loop and closed-loop control at the joint level for J4 (wrist\_1). \textbf{Top panel (Open-Loop):} The robot perfectly tracks the MoveIt reference trajectory (blue curve matches executed joint positions). There is \textit{no joint-level tracking error} because the controller faithfully executes the planned joint commands. However, this reference was computed using an erroneous camera calibration — therefore, despite perfect joint tracking, the end-effector misses its Cartesian target by 28mm on average.
+
+\textbf{Bottom panel (Closed-Loop RL):} The RL agent intentionally deviates from the reference by applying a systematic +0.63\textdegree\ bias on J4. This is not tracking error but a \textit{deliberate correction}. The gap between the blue reference and the orange executed trajectory shows that the agent has learned to compensate for the calibration error by exploiting kinematic redundancy. By slightly adjusting this wrist joint, the policy corrects the end-effector position without requiring recalibration or replanning. This demonstrates intelligent closed-loop compensation: the agent "knows" the reference is biased and proactively corrects it to achieve the true task-space objective.
 
 \begin{figure}[htbp]
     \centering
