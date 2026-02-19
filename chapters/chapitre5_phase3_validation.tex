@@ -91,6 +91,6 @@ The smooth profile without high-frequency oscillations indicates stable control.
 \section{Limitations of this validation}
 Although the results in Isaac Lab are promising, this validation remains a ``Sim-to-Sim'' evaluation within the same physics engine (PhysX). 
 The main risk is that the policy may have learned to exploit simulation-specific artifacts (numerical errors, simplified friction model) that do not exist in reality.
-To ensure true robustness before real-world deployment, it is crucial to validate the policy in different simulation environments (e.g., Gazebo, PyBullet with different physics parameters) and ultimately on real hardware.
+To ensure true robustness before real-world deployment, it is crucial to validate the policy in different simulation environments (e.g., Gazebo, MuJoCo with different physics parameters) and ultimately on real hardware.
 
 
