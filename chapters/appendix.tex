@@ -14,18 +14,20 @@ Table \ref{tab:ppo_params} lists the hyperparameters used for the Proximal Polic
 \toprule
 \textbf{Parameter} & \textbf{Value} \\
 \midrule
-Total Timesteps & 72,000 (approx.) \\
+Total Timesteps & 19,660,800 \\
 Number of Environments & 4096 \\
-Horizon (Steps per Episode) & 64 \\
-Batch Size & 32,768 \\
-Mini-batch Size & 4096 \\
+Horizon (Steps per Episode) & 32 \\
+Batch Size & 131,072 \\
+Mini-batch Size & 32,768 \\
+Number of Mini-batches & 4 \\
 Number of Epochs & 5 \\
-Clip Range ($\epsilon$) & 0.2 \\
-Entropy Coefficient & 0.01 \\
+Clip Range ($\epsilon$) & 0.1 \\
+Entropy Coefficient & $1 \times 10^{-4}$ \\
 Value Function Coefficient & 1.0 \\
-Learning Rate & $5 \times 10^{-4}$ (Linear decay) \\
+Learning Rate & $1 \times 10^{-4}$ (Adaptive) \\
 Discount Factor ($\gamma$) & 0.99 \\
 GAE ($\lambda$) & 0.95 \\
+Max Iterations & 150 \\
 \bottomrule
 \end{tabular}
 \end{table}
