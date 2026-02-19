@@ -19,7 +19,7 @@ Reinforcement Learning (RL) teaches a robot through trial and error, like learni
 
 \textbf{Concrete example.} Consider the robot trying to reach a target position. At timestep $t$, the state might be: current joint angles $[0.1, -0.5, 1.2, -1.1, -1.6, 0.0]$ rad and target distance $0.15$ m. The policy outputs an action: joint velocity corrections $[0.02, -0.01, 0.03, 0.0, -0.01, 0.0]$ rad/s. If this action reduces the distance to $0.10$ m, the reward is positive ($r_t = +0.5$); if distance increases, the reward is negative. After observing 10,000 such examples, the policy learns which joint motions consistently reduce target distance.
 
-\textbf{The simulation solution.} Training on a physical robot is impractical—it would take weeks and risk damage. Instead, NVIDIA Isaac Lab runs 4096 simulated robots simultaneously on GPU, reducing training from weeks to hours. Once trained in simulation, the policy can be deployed to the real robot (sim-to-real transfer).
+\textbf{The simulation solution.} Training on a physical robot is impractical—it would take weeks and risk damage. Instead, NVIDIA Isaac Lab runs thousands of simulated robots simultaneously on GPU, reducing training from weeks to hours. Once trained in simulation, the policy can be deployed to the real robot (sim-to-real transfer).
 
 \textbf{PPO algorithm.} We use Proximal Policy Optimization (PPO) because it is stable (smooth learning without erratic changes) and sample-efficient (learns without excessive trials). PPO has proven successful in various robotics applications from locomotion to manipulation.
 

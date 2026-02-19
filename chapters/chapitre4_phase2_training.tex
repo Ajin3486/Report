@@ -3,19 +3,19 @@
 \begin{figure}[!htb]
     \centering
     \includegraphics[width=1\textwidth]{images/train.png}
-    \caption{Massive parallelization of 4096 environments in Isaac Lab.}
+    \caption{Massive parallelization of thousands of environments in Isaac Lab.}
     \label{fig:isaac_lab_training}
 \end{figure}
 
 \section{Synthetic Perception \& Noise}
-To bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections are explicitly modeled in the simulator. 
+To prepare the policy for deployment on the physical UR10 robot and bridge the \textit{Sim2Real} gap (Reality Gap), real-world imperfections observed on our actual hardware setup are explicitly modeled in the simulator. 
 These perturbations affect both the agent's perception and the physical dynamics:
 
 
 
 \subsection{Simulation Environment}
 
-\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. In our configuration, we instantiate \textbf{4096 simultaneous environments} running in parallel. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions.
+\textbf{GPU parallelization for rapid training.} The choice of Isaac Lab is justified by its capability for massive parallelization on GPU. The number of simultaneous environments depends on the available GPU memory—higher-end GPUs enable more parallel simulations. In our setup using an NVIDIA RTX 4060, we can instantiate approximately 4000 environments in parallel, with each environment consuming roughly 1 environment per robot simulated. This allows collecting millions of experience samples in minutes, drastically accelerating training compared to real-time sequential simulation or standard CPU-based approaches. Each environment independently simulates the UR10 robot with randomized parameters, enabling robust policy learning across diverse conditions.
 
 
 
@@ -89,7 +89,7 @@ These perturbations affect both the agent's perception and the physical dynamics
 
 To bridge the sim-to-real gap, we explicitly model real-world imperfections in the simulator. Rather than rendering camera images (which would be computationally expensive), we use a mathematical camera model with injected noise:
 
-\textbf{Camera model (Pinhole).} A virtual camera is placed with realistic intrinsic parameters ($f_x=491.6, f_y=488.0$) matching the physical webcam specifications. The camera's extrinsic pose (position and orientation relative to the robot base) is calibrated to match the real setup.
+\textbf{Camera model (Pinhole).} A virtual camera is placed with intrinsic parameters ($f_x=491.6, f_y=488.0$) directly extracted from the calibration of our physical Logitech C930e webcam (see Chapter 2). The camera's extrinsic pose (position and orientation relative to the robot base) is configured to match the exact mounting position on the real UR10 setup.
 
 \textbf{Measurement noise injection:}
 \begin{itemize}
@@ -185,32 +185,8 @@ To better understand the agent's behavior, we analyze the evolution of specific 
     \item \textbf{Value Loss (value\_loss):} The value function estimator (Critic) rapidly reduces its prediction error. A low stable value loss means the Critic accurately predicts the expected return of the current state, which is crucial for stable PPO training.
     
     \item \textbf{Entropy (entropy):} The entropy curve shows a gradual decrease. Initially high, it encourages exploration of random actions. As training progresses, the agent becomes more confident in its optimal strategy, and the distribution of actions narrows (less randomness).
-    
-    \item \textbf{Kl Divergence (kl\_div):} This metric monitors the difference between the old and new policy after each update. It remains bounded within a small range, confirming that the PPO clipping mechanism effectively prevents destructive large updates that could collapse the policy.
-    
-    \item \textbf{Clip Fraction (clip\_frac):} This indicates how often the policy update was "clipped" by PPO constraints. A moderate value suggests that the algorithm is aggressively trying to improve the policy while being constrained to safe update steps.
+
 \end{itemize}
 
-\subsubsection{Episode Length Analysis}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{images/meanreward.png}
-    \caption{Mean episode length and standard deviation during training.}
-    \label{fig:episode_length}
-\end{figure}
-
-Figure~\ref{fig:episode_length} shows the evolution of episode length during training. The mean episode length rapidly increases from approximately 25 steps to around 65 steps and stabilizes at this level. This metric provides crucial insight into the agent's task completion efficiency:
-
-\begin{itemize}
-    \item \textbf{Initial Phase (0-1000 iterations):} Episodes are very short because the agent frequently fails to reach the target or violates workspace constraints, triggering early termination. The low episode length reflects poor performance.
-    
-    \item \textbf{Learning Phase (1000-4000 iterations):} The sharp increase in episode length indicates that the agent is learning to maintain tracking and successfully complete longer trajectory segments without failure.
-    
-    \item \textbf{Mature Policy (>4000 iterations):} The stable plateau at 65 steps shows that the agent consistently completes full episodes. The maximum episode length is capped at 64 steps by design (trajectory duration), meaning the policy achieves near-perfect success rate in following the entire reference trajectory.
-    
-    \item \textbf{Low Standard Deviation:} The very small variance in episode length (shown in the right subplot) confirms the policy's reliability and consistency across different trajectory scenarios.
-\end{itemize}
-
-This metric complements the reward curve by quantifying task completion: a high reward could theoretically be achieved on short episodes, but high episode length with high reward proves that the agent successfully tracks entire trajectories.
 

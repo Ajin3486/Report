@@ -1,13 +1,15 @@
 % Introduction (~1 page)
 
-Industrial robotics traditionally relies on pre-programmed trajectories, which lack adaptability when facing calibration errors or environmental variations. Vision-based control systems using fiducial markers (e.g., AprilTags) enable environmental perception but introduce new challenges: camera calibration errors, marker detection noise, and perception latency can cause positioning inaccuracies critical for millimeter-precision tasks.
+Industrial robotics traditionally relies on pre-programmed trajectories, which lack adaptability when facing modeling discrepancies or environmental variations. Vision-based control systems using fiducial markers (e.g., AprilTags) enable environmental perception but introduce sensor noise and latency. Furthermore, theoretical robot models rarely match physical reality perfectly due to friction, payload uncertainties, and geometric inaccuracies.
 
-The core problem is: \textit{How can a robotic manipulator achieve precise trajectory tracking despite perception errors while maintaining safety guarantees?} Classical motion planners like MoveIt ensure collision-free trajectories but cannot adapt to real-time perception errors, while end-to-end learned controllers lack safety guarantees and require extensive real-world training data.
+The core problem is: How can a robotic manipulator achieve precise trajectory tracking despite both perception noise and system modeling errors while maintaining safety guarantees? Classical motion planners like MoveIt ensure collision-free trajectories but cannot adapt to dynamic mismatches, while end-to-end learned controllers lack safety guarantees and require extensive real-world training data.
 
-This work proposes a hybrid residual learning approach: MoveIt generates safe nominal trajectories, while Reinforcement Learning (RL) learns small corrective actions to compensate for perception and calibration errors, ensuring the robot remains safe while gaining real-world adaptability.
+This work proposes a hybrid residual learning approach: MoveIt generates safe nominal trajectories, while Reinforcement Learning (RL) learns small corrective actions to compensate for perception noise as well as kinematic and dynamic calibration errors, ensuring the robot remains safe while gaining real-world adaptability.
+\vspace{0.5cm}
+
+
+\noindent\textbf{Approach and Objectives.} The primary objective is to develop a residual RL pipeline for robust trajectory tracking on a UR10 manipulator. The system consists of: (1) a UR10 arm with camera observing AprilTag markers for localization, (2) ROS2/MoveIt generating collision-free trajectories, (3) PPO policy training in NVIDIA Isaac Lab with massively parallel environments, and (4) validation through extensive domain randomization—varying sensor noise, kinematic and dynamic calibration errors—to demonstrate robustness suggesting successful sim-to-real transfer potential.
 
 \vspace{0.3cm}
-\noindent\textbf{Approach and Objectives.} The primary objective is to develop a residual RL pipeline for robust trajectory tracking on a UR10 manipulator. The system consists of: (1) a UR10 arm with camera observing AprilTag markers for localization, (2) ROS2/MoveIt generating collision-free trajectories, (3) PPO policy training in NVIDIA Isaac Lab with 4096 parallel environments, and (4) validation through extensive domain randomization—varying sensor noise, calibration errors, and dynamics—to demonstrate robustness suggesting successful sim-to-real transfer potential.
 
-The remainder of this thesis provides background on motion planning and reinforcement learning, details the system architecture and PPO implementation, describes the domain randomization validation strategy, presents experimental results, and concludes with findings and future work toward physical deployment.
-
+The remainder of this report provides background on motion planning and reinforcement learning, details the system architecture designed for the physical UR10, describes the PPO training methodology, presents \textbf{Sim-to-Sim validation results} (as an intermediate robustness test before real-world deployment), and concludes with findings and future work toward completing the sim-to-real transfer.

@@ -1,6 +1,6 @@
 \section{Trajectory Generation}
 
-This chapter describes how we generate training and validation trajectories using MoveIt2's Cartesian path planning capabilities. We first explain the technical approach for generating straight-line trajectories, then detail the distinction between training and validation datasets.
+This chapter describes how we generate training and validation trajectories using MoveIt2's Cartesian path planning capabilities designed for eventual deployment on the physical UR10 robot. We first explain the technical approach for generating straight-line trajectories, then detail the distinction between training and validation datasets.
 
 \subsection{Cartesian Path Planning with MoveIt2}
 
@@ -18,7 +18,7 @@ By using Cartesian interpolation, we ensure that all trajectories follow intuiti
 
 \textbf{Training data: Random trajectories for generalization.} To ensure the neural network learns a general correction policy rather than memorizing specific paths, we generate a training dataset of 500 random straight-line trajectories covering the entire workspace. Each trajectory connects two random waypoints within the bounds (X: [0.7m, 1.0m], Y: [-0.2m, 0.2m], Z: 0.2m fixed), resampled to 64 timesteps (5.33 seconds at 12Hz). This diversity forces the agent to learn robust corrections applicable to any position within the workspace, preventing overfitting to a single task.
 
-\textbf{Validation data: Tag-to-tag trajectories.} After training, we validate the learned policy using a separate script that generates trajectories between actual physical AprilTag positions detected by the camera. This represents the real deployment scenario where the robot must navigate between known markers in the environment. These validation trajectories were never seen during training, ensuring an unbiased evaluation of generalization capability.
+\textbf{Validation data: Tag-to-tag trajectories.} After training, we validate the learned policy using trajectories between actual physical AprilTag positions detected by the real camera on the real UR10 setup. This mirrors exactly the intended real-world deployment scenario where the robot must navigate between known markers in the physical environment. These validation trajectories were never seen during training, ensuring an unbiased evaluation of generalization capability and readiness for sim-to-real transfer.
 
-\textbf{Why this distinction matters.} Training on diverse random examples enables the policy to learn general correction strategies, while testing on realistic task-specific scenarios demonstrates practical applicability. This separation is critical: it prevents the agent from simply memorizing training examples and forces it to develop transferable skills.
+
 
